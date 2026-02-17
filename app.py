@@ -166,29 +166,47 @@ def extract_video_id(url: str) -> str | None:
 def get_transcript(video_id: str) -> tuple[str, str]:
     """Returns (transcript_text, language_used)"""
     try:
-        # Try Czech first, then English, then any available
-        for lang in [["cs"], ["en"], None]:
-            try:
-                if lang:
-                    segments = YouTubeTranscriptApi.get_transcript(video_id, languages=lang)
-                else:
-                    transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-                    transcript = transcript_list.find_generated_transcript(
-                        transcript_list._generated_transcripts.keys()
-                        if hasattr(transcript_list, '_generated_transcripts')
-                        else ["en"]
-                    )
-                    segments = transcript.fetch()
-                text = " ".join(s["text"] for s in segments)
-                detected_lang = lang[0] if lang else "auto"
-                return text, detected_lang
-            except Exception:
-                continue
-        raise NoTranscriptFound(video_id, ["cs", "en"], {})
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+
+        # Priority: manual cs → manual en → auto cs → auto en → any auto → any manual
+        fetch_order = []
+        try:
+            fetch_order.append(("manual_cs", transcript_list.find_manually_created_transcript(["cs"])))
+        except Exception:
+            pass
+        try:
+            fetch_order.append(("manual_en", transcript_list.find_manually_created_transcript(["en"])))
+        except Exception:
+            pass
+        try:
+            fetch_order.append(("auto_cs", transcript_list.find_generated_transcript(["cs"])))
+        except Exception:
+            pass
+        try:
+            fetch_order.append(("auto_en", transcript_list.find_generated_transcript(["en"])))
+        except Exception:
+            pass
+
+        # Fallback: any generated transcript
+        if not fetch_order:
+            for t in transcript_list:
+                fetch_order.append(("auto_any", t))
+                break
+
+        if not fetch_order:
+            raise RuntimeError("Pro toto video nebyly nalezeny žádné titulky.")
+
+        label, transcript = fetch_order[0]
+        segments = transcript.fetch()
+        text = " ".join(s["text"] for s in segments)
+        return text, label
+
     except TranscriptsDisabled:
         raise RuntimeError("Titulky jsou pro toto video zakázány.")
-    except NoTranscriptFound:
-        raise RuntimeError("Pro toto video nebyly nalezeny žádné titulky (cs/en).")
+    except RuntimeError:
+        raise
+    except Exception:
+        raise RuntimeError("Pro toto video nebyly nalezeny žádné titulky.")
 
 
 def get_claude_client() -> anthropic.Anthropic:
