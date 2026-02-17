@@ -1,5 +1,6 @@
 import streamlit as st
-from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import NoTranscriptFound, TranscriptsDisabled
 import anthropic
 import re
 
@@ -166,7 +167,8 @@ def extract_video_id(url: str) -> str | None:
 def get_transcript(video_id: str) -> tuple[str, str]:
     """Returns (transcript_text, language_used)"""
     try:
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        ytt = YouTubeTranscriptApi()
+        transcript_list = ytt.list(video_id)
 
         all_transcripts = list(transcript_list)
 
@@ -188,9 +190,10 @@ def get_transcript(video_id: str) -> tuple[str, str]:
 
         all_transcripts.sort(key=preference)
         chosen = all_transcripts[0]
-        segments = chosen.fetch()
-        text = " ".join(s["text"] for s in segments)
-        return text, f"{chosen.language_code} ('auto' if chosen.is_generated else 'manual')"
+        fetched = ytt.fetch(video_id, languages=[chosen.language_code])
+        text = " ".join(s.text for s in fetched)
+        lang_type = "auto" if chosen.is_generated else "manual"
+        return text, f"{chosen.language_code} ({lang_type})"
 
     except TranscriptsDisabled:
         raise RuntimeError("Titulky jsou pro toto video zakázány.")
