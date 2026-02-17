@@ -168,45 +168,36 @@ def get_transcript(video_id: str) -> tuple[str, str]:
     try:
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
 
-        # Priority: manual cs → manual en → auto cs → auto en → any auto → any manual
-        fetch_order = []
-        try:
-            fetch_order.append(("manual_cs", transcript_list.find_manually_created_transcript(["cs"])))
-        except Exception:
-            pass
-        try:
-            fetch_order.append(("manual_en", transcript_list.find_manually_created_transcript(["en"])))
-        except Exception:
-            pass
-        try:
-            fetch_order.append(("auto_cs", transcript_list.find_generated_transcript(["cs"])))
-        except Exception:
-            pass
-        try:
-            fetch_order.append(("auto_en", transcript_list.find_generated_transcript(["en"])))
-        except Exception:
-            pass
+        all_transcripts = list(transcript_list)
 
-        # Fallback: any generated transcript
-        if not fetch_order:
-            for t in transcript_list:
-                fetch_order.append(("auto_any", t))
-                break
-
-        if not fetch_order:
+        if not all_transcripts:
             raise RuntimeError("Pro toto video nebyly nalezeny žádné titulky.")
 
-        label, transcript = fetch_order[0]
-        segments = transcript.fetch()
+        def preference(t):
+            if t.language_code == "cs" and not t.is_generated:
+                return 0
+            if t.language_code == "en" and not t.is_generated:
+                return 1
+            if t.language_code == "cs":
+                return 2
+            if t.language_code == "en":
+                return 3
+            if not t.is_generated:
+                return 4
+            return 5
+
+        all_transcripts.sort(key=preference)
+        chosen = all_transcripts[0]
+        segments = chosen.fetch()
         text = " ".join(s["text"] for s in segments)
-        return text, label
+        return text, f"{chosen.language_code} ('auto' if chosen.is_generated else 'manual')"
 
     except TranscriptsDisabled:
         raise RuntimeError("Titulky jsou pro toto video zakázány.")
     except RuntimeError:
         raise
-    except Exception:
-        raise RuntimeError("Pro toto video nebyly nalezeny žádné titulky.")
+    except Exception as e:
+        raise RuntimeError(f"Chyba: {type(e).__name__}: {e}")
 
 
 def get_claude_client() -> anthropic.Anthropic:
