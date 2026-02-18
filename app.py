@@ -434,6 +434,29 @@ if st.session_state.get("analysis"):
 
     share_url = f"https://jc6yjewlm4knn7dltaihlg.streamlit.app/?v={video_id}"
     cache_badge = '<span class="cached-badge">✓ CACHED</span>' if from_cache else ''
+    title_display = info.get("title", "")
+    author_display = info.get("author", "")
+    lang_display = st.session_state.get("lang", "")
+
+    # Title + share above columns
+    share_svg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>'
+    st.components.v1.html(f"""
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.2rem;padding-bottom:1.2rem;border-bottom:1px solid #1e1e1e;">
+        <div style="flex:1;min-width:0;">
+            {cache_badge}
+            <div style="font-size:1.45rem;font-weight:700;color:#f0f0f0;line-height:1.35;margin-bottom:0.5rem;font-family:'DM Sans',sans-serif;">{title_display}</div>
+            <div style="font-size:0.88rem;color:#555;font-family:'Space Mono',monospace;display:flex;gap:1.2rem;flex-wrap:wrap;">
+                <span>👤 {author_display}</span>
+                <span>🌐 {lang_display}</span>
+            </div>
+        </div>
+        <button id="sharebtn" title="Copy Share Link"
+            onclick="navigator.clipboard.writeText('{share_url}').then(function(){{var b=document.getElementById('sharebtn');b.innerText='✓';b.style.color='#4caf50';b.style.borderColor='#4caf50';setTimeout(function(){{b.innerHTML='{share_svg}';b.style.color='#aaa';b.style.borderColor='#2a2a2a'}},2000)}})"
+            style="flex-shrink:0;background:#1a1a1a;color:#aaa;border:1px solid #2a2a2a;border-radius:8px;padding:0.45rem 0.7rem;cursor:pointer;display:flex;align-items:center;margin-top:4px;transition:all 0.2s;">
+            {share_svg}
+        </button>
+    </div>
+    """, height=100)
 
     col_left, col_right = st.columns([1, 1], gap="large")
 
@@ -444,30 +467,6 @@ if st.session_state.get("analysis"):
             frameborder="0" allowfullscreen style="display:block;"></iframe>
         </div>
         """, unsafe_allow_html=True)
-
-        title_display = info.get("title", "")
-        author_display = info.get("author", "")
-        lang_display = st.session_state.get("lang", "")
-
-        # Title row with Share button
-        st.components.v1.html(f"""
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.4rem;padding-bottom:1.2rem;border-bottom:1px solid #1e1e1e;">
-            <div style="flex:1;min-width:0;">
-                {cache_badge}
-                <div style="font-size:1.45rem;font-weight:700;color:#f0f0f0;line-height:1.35;margin-bottom:0.5rem;font-family:'DM Sans',sans-serif;">{title_display}</div>
-                <div style="font-size:0.88rem;color:#555;font-family:'Space Mono',monospace;display:flex;gap:1.2rem;flex-wrap:wrap;">
-                    <span>👤 {author_display}</span>
-                    <span>🌐 {lang_display}</span>
-                </div>
-            </div>
-            <button
-                title="Copy Share Link"
-                onclick="navigator.clipboard.writeText('{share_url}').then(()=>{{this.innerText='✓';this.style.color='#4caf50';this.style.borderColor='#4caf50';setTimeout(()=>{{this.innerText='⬆ Share';this.style.color='#aaa';this.style.borderColor='#2a2a2a'}},2000)}})"
-                style="flex-shrink:0;background:#1a1a1a;color:#aaa;border:1px solid #2a2a2a;border-radius:8px;padding:0.45rem 0.9rem;font-size:0.8rem;cursor:pointer;font-family:'Space Mono',monospace;letter-spacing:1px;white-space:nowrap;margin-top:4px;transition:all 0.2s;">
-                ⬆ Share
-            </button>
-        </div>
-        """, height=115)
 
         st.markdown('<div class="section-label">Ask a question about this video</div>', unsafe_allow_html=True)
         q_col, btn_col = st.columns([5, 1])
@@ -525,13 +524,15 @@ if recent:
             ago = time_ago(v.get("timestamp", ""))
             vid_id = v["video_id"]
             st.markdown(f"""
-            <div class="feed-card" onclick="window.parent.location.href=window.parent.location.pathname+'?v={vid_id}'" style="cursor:pointer;">
+            <a href="/?v={vid_id}" style="text-decoration:none;display:block;">
+            <div class="feed-card">
                 <img class="feed-thumb" src="{v['thumb']}" onerror="this.style.background='#1a1a1a'"/>
                 <div style="min-width:0">
                     <div class="feed-title">{v['title']}</div>
                     <div class="feed-meta">👤 {v.get('author','')} &nbsp;·&nbsp; {ago}</div>
                 </div>
             </div>
+            </a>
             """, unsafe_allow_html=True)
 else:
     st.markdown("""
