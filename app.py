@@ -88,7 +88,10 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 .stTextInput > div > div > input { background: #141414 !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; color: #f0f0f0 !important; font-size: 1.08rem !important; padding: 0.65rem 1rem !important; }
 .stTextInput > div > div > input:focus { border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255,77,77,0.12) !important; }
 .stFormSubmitButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1.1rem !important; font-weight: 700 !important; letter-spacing: 2px !important; padding: 0.85rem 2.8rem !important; }
-[data-testid="stForm"]:has([data-testid="stTextInput"]) .stFormSubmitButton > button { background: #1a1a1a !important; color: #aaa !important; border: 1px solid #2a2a2a !important; font-size: 0.85rem !important; font-weight: 400 !important; letter-spacing: 1px !important; padding: 0.65rem 1.2rem !important; }
+/* ASK button: secondary gray, match input height */
+[data-testid="stForm"]:has([data-testid="stTextInput"]) .stFormSubmitButton > button { background: #1a1a1a !important; color: #aaa !important; border: 1px solid #2a2a2a !important; font-size: 0.85rem !important; font-weight: 400 !important; letter-spacing: 1px !important; padding: 0 1.2rem !important; height: 42px !important; min-height: 42px !important; }
+[data-testid="stForm"]:has([data-testid="stTextInput"]) .stFormSubmitButton { display: flex !important; align-items: flex-end !important; }
+[data-testid="stForm"]:has([data-testid="stTextInput"]) .stTextInput > div > div > input { height: 42px !important; min-height: 42px !important; box-sizing: border-box !important; }
 .stButton > button:hover { opacity: 0.85 !important; }
 /* Hide the invisible feed trigger buttons */
 [data-testid="stButton"] button[title] { 
@@ -450,8 +453,17 @@ if st.session_state.get("analysis"):
         )
     with _s_col:
         st.components.v1.html(
-            '<button onclick="navigator.clipboard.writeText(\'' + share_url + '\')" title="Copy Share Link" '
-            'style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:#aaa;font-family:monospace;font-size:12px;white-space:nowrap;">'
+            '<button id="shareBtn" onclick="'
+            "navigator.clipboard.writeText('" + share_url + "');"
+            "var b=document.getElementById('shareBtn');"
+            "b.innerHTML='<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'14\\' height=\\'14\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#4caf50\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg>Copied';"
+            "b.style.borderColor='#2a4a2a';b.style.color='#4caf50';"
+            "setTimeout(function(){"
+            "b.innerHTML='<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'14\\' height=\\'14\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#aaa\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><circle cx=\\'18\\' cy=\\'5\\' r=\\'3\\'/><circle cx=\\'6\\' cy=\\'12\\' r=\\'3\\'/><circle cx=\\'18\\' cy=\\'19\\' r=\\'3\\'/><line x1=\\'8.59\\' y1=\\'13.51\\' x2=\\'15.42\\' y2=\\'17.49\\'/><line x1=\\'15.41\\' y1=\\'6.51\\' x2=\\'8.59\\' y2=\\'10.49\\'/></svg>Share Link';"
+            "b.style.borderColor='#2a2a2a';b.style.color='#aaa';"
+            "},2000);"
+            '" title="Copy Share Link" '
+            'style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:#aaa;font-family:monospace;font-size:12px;white-space:nowrap;transition:all 0.2s;">'
             '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
             '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>'
             '<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>'
