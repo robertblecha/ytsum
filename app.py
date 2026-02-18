@@ -42,7 +42,7 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 
 .summary-text { font-size: 1.08rem; line-height: 1.85; color: #d8d8d8; font-weight: 500; }
 
-.bullet-item { display: flex; gap: 0.9rem; padding: 0.7rem 0; border-bottom: 1px solid #1e1e1e; font-size: 0.98rem; color: #bbb; line-height: 1.65; }
+.bullet-item { display: flex; gap: 0.9rem; padding: 0.7rem 0; border-bottom: 1px solid #1e1e1e; font-size: 1.08rem; color: #bbb; line-height: 1.7; }
 .bullet-item:last-child { border-bottom: none; }
 .bullet-dot { color: #ff4d4d; font-weight: 700; flex-shrink: 0; margin-top: 3px; }
 
@@ -87,7 +87,7 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 
 .stTextInput > div > div > input { background: #141414 !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; color: #f0f0f0 !important; font-size: 1.08rem !important; padding: 0.65rem 1rem !important; }
 .stTextInput > div > div > input:focus { border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255,77,77,0.12) !important; }
-.stButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1rem !important; letter-spacing: 2px !important; padding: 0.75rem 2.5rem !important; }
+.stButton > button, .stFormSubmitButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1.1rem !important; font-weight: 700 !important; letter-spacing: 2px !important; padding: 0.85rem 2.8rem !important; }
 .stButton > button:hover { opacity: 0.85 !important; }
 /* Hide the invisible feed trigger buttons */
 [data-testid="stButton"] button[title] { 
