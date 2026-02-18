@@ -87,10 +87,12 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 
 .stTextInput > div > div > input { background: #141414 !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; color: #f0f0f0 !important; font-size: 1rem !important; padding: 0.65rem 1rem !important; }
 .stTextInput > div > div > input:focus { border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255,77,77,0.12) !important; }
-.stButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 0.85rem !important; letter-spacing: 1px !important; padding: 0.6rem 1.6rem !important; }
+.stButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1rem !important; letter-spacing: 2px !important; padding: 0.75rem 2.5rem !important; }
 .stButton > button:hover { opacity: 0.85 !important; }
-/* Feed open buttons - smaller, secondary style */
-[data-testid="stButton"] button[kind="secondary"] { background: #1a1a1a !important; color: #888 !important; border: 1px solid #2a2a2a !important; font-size: 0.72rem !important; padding: 0.25rem 0.7rem !important; letter-spacing: 0.5px !important; }
+/* Hide the invisible feed trigger buttons */
+[data-testid="stButton"] button[title] { 
+    position: absolute !important; opacity: 0 !important; pointer-events: none !important; width: 0 !important; height: 0 !important; padding: 0 !important; 
+}
 .stExpander { border: 1px solid #1e1e1e !important; border-radius: 12px !important; background: #141414 !important; }
 
 .footer { margin-top: 4rem; padding: 2rem 0 1rem; border-top: 1px solid #1a1a1a; text-align: center; }
@@ -338,9 +340,7 @@ url_input = st.text_input(
     value=f"https://www.youtube.com/watch?v={qparam_vid}" if qparam_vid and st.session_state.get("from_cache") else "",
 )
 
-col_btn, _ = st.columns([1, 5])
-with col_btn:
-    analyze_btn = st.button("▶  ANALYZE")
+analyze_btn = st.button("▶  ANALYZE", use_container_width=False)
 
 # ── Analysis flow ─────────────────────────────────────────────────────────────
 
@@ -522,29 +522,33 @@ if recent:
         with cols[i % 2]:
             ago = time_ago(v.get("timestamp", ""))
             vid_id = v["video_id"]
+            # Clickable card via button with custom HTML label
             st.markdown(f"""
-            <div class="feed-card" style="padding:0;overflow:hidden;">
-                <img class="feed-thumb" src="{v['thumb']}" onerror="this.style.background='#1a1a1a'" style="margin:0.8rem 0 0.8rem 0.8rem;"/>
-                <div style="min-width:0;padding:0.8rem 0.8rem 0.8rem 0;">
+            <div class="feed-card" id="card_{vid_id}" onclick="document.getElementById('btn_{vid_id}').click()" style="cursor:pointer;">
+                <img class="feed-thumb" src="{v['thumb']}" onerror="this.style.background='#1a1a1a'"/>
+                <div style="min-width:0">
                     <div class="feed-title">{v['title']}</div>
                     <div class="feed-meta">👤 {v.get('author','')} &nbsp;·&nbsp; {ago}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("▶ Open", key=f"feed_{vid_id}_{i}"):
-                cached = load_cached_analysis(vid_id)
-                if cached:
-                    st.session_state.update({
-                        "video_id": vid_id,
-                        "video_url": f"https://www.youtube.com/watch?v={vid_id}",
-                        "transcript": cached.get("transcript", ""),
-                        "lang": cached.get("lang", ""),
-                        "analysis": cached.get("analysis"),
-                        "video_info": cached.get("info"),
-                        "from_cache": True,
-                    })
-                    st.query_params["v"] = vid_id
-                    st.rerun()
+            # Hidden Streamlit button that the card click triggers
+            btn_container = st.container()
+            with btn_container:
+                if st.button(" ", key=f"feed_{vid_id}_{i}", help=v['title']):
+                    cached = load_cached_analysis(vid_id)
+                    if cached:
+                        st.session_state.update({
+                            "video_id": vid_id,
+                            "video_url": f"https://www.youtube.com/watch?v={vid_id}",
+                            "transcript": cached.get("transcript", ""),
+                            "lang": cached.get("lang", ""),
+                            "analysis": cached.get("analysis"),
+                            "video_info": cached.get("info"),
+                            "from_cache": True,
+                        })
+                        st.query_params["v"] = vid_id
+                        st.rerun()
 else:
     st.markdown("""
     <div style="text-align:center;color:#222;padding:2rem 0;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:2px;">
