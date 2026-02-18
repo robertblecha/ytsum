@@ -1,6 +1,4 @@
 import streamlit as st
-from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import NoTranscriptFound, TranscriptsDisabled
 import anthropic
 import re
 import json
@@ -176,31 +174,29 @@ def time_ago(iso_str: str) -> str:
 
 
 def get_transcript(video_id: str) -> tuple[str, str]:
+    from supadata import Supadata, SupadataError
+    api_key = st.secrets.get("SUPADATA_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("Missing SUPADATA_API_KEY in Streamlit secrets.")
+    sd = Supadata(api_key=api_key)
     try:
-        ytt = YouTubeTranscriptApi()
-        all_transcripts = list(ytt.list(video_id))
-        if not all_transcripts:
+        result = sd.transcript(
+            url=f"https://www.youtube.com/watch?v={video_id}",
+            text=True,
+            mode="native",
+        )
+        if not result or not getattr(result, "content", None):
             raise RuntimeError("No subtitles found for this video.")
-
-        def pref(t):
-            if t.language_code == "cs" and not t.is_generated: return 0
-            if t.language_code == "en" and not t.is_generated: return 1
-            if t.language_code == "cs": return 2
-            if t.language_code == "en": return 3
-            if not t.is_generated: return 4
-            return 5
-
-        all_transcripts.sort(key=pref)
-        chosen = all_transcripts[0]
-        fetched = ytt.fetch(video_id, languages=[chosen.language_code])
-        text = " ".join(s.text for s in fetched)
-        return text, f"{chosen.language_code} ({'auto' if chosen.is_generated else 'manual'})"
-    except TranscriptsDisabled:
-        raise RuntimeError("Subtitles are disabled for this video.")
+        text = result.content if isinstance(result.content, str) else " ".join(c.text for c in result.content)
+        lang = getattr(result, "lang", "unknown")
+        return text, lang
+    except SupadataError as e:
+        raise RuntimeError(f"Transcript unavailable: {e}")
     except RuntimeError:
         raise
     except Exception as e:
         raise RuntimeError(f"Error: {type(e).__name__}: {e}")
+
 
 
 def get_claude_client():
