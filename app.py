@@ -439,31 +439,24 @@ if st.session_state.get("analysis"):
     lang_display = st.session_state.get("lang", "")
 
     # Title + share above columns
-    _svg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>'
-    _svg_escaped = _svg.replace("'", "\'")
-    _cache = '<span class="cached-badge">✓ CACHED</span>' if from_cache else ''
-    _onclick = (
-        "navigator.clipboard.writeText('" + share_url + "').then(function(){"
-        "var b=document.getElementById('sharebtn');"
-        "b.innerHTML='✓';b.style.color='#4caf50';b.style.borderColor='#4caf50';"
-        "setTimeout(function(){b.innerHTML='" + _svg_escaped + "';b.style.color='#aaa';b.style.borderColor='#2a2a2a';},2000);})"
+    _cache_html = '<span class="cached-badge">&#10003; CACHED</span>&nbsp;&nbsp;' if from_cache else ''
+    st.markdown(
+        f'''<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #1e1e1e;">
+        <div>
+            ''' + _cache_html + f'''
+            <div style="font-size:1.45rem;font-weight:700;color:#f0f0f0;line-height:1.35;margin-bottom:0.4rem;">{title_display}</div>
+            <div style="font-size:0.88rem;color:#555;font-family:Space Mono,monospace;">&#128100; {author_display} &nbsp;&middot;&nbsp; &#127760; {lang_display}</div>
+        </div>
+        <span onclick="navigator.clipboard.writeText(\'{share_url}\')" title="Copy Share Link"
+            style="cursor:pointer;padding:6px 8px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;display:inline-flex;align-items:center;flex-shrink:0;margin-top:4px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+        </span>
+    </div>''',
+        unsafe_allow_html=True
     )
-    _html = (
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;'
-        'margin-bottom:1.2rem;padding-bottom:1.2rem;border-bottom:1px solid #1e1e1e;">'
-        '<div style="flex:1;min-width:0;">'
-        + _cache
-        + '<div style="font-size:1.45rem;font-weight:700;color:#f0f0f0;line-height:1.35;margin-bottom:0.5rem;font-family:DM Sans,sans-serif;">' + title_display + '</div>'
-        '<div style="font-size:0.88rem;color:#555;font-family:Space Mono,monospace;display:flex;gap:1.2rem;flex-wrap:wrap;">'
-        '<span>👤 ' + author_display + '</span><span>🌐 ' + lang_display + '</span></div>'
-        '</div>'
-        '<button id="sharebtn" title="Copy Share Link" onclick="' + _onclick + '" '
-        'style="flex-shrink:0;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;'
-        'padding:0.45rem 0.7rem;cursor:pointer;display:flex;align-items:center;margin-top:4px;transition:all 0.2s;">'
-        + _svg +
-        '</button></div>'
-    )
-    st.components.v1.html(_html, height=100)
     col_left, col_right = st.columns([1, 1], gap="large")
 
     with col_left:
