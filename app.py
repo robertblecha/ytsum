@@ -87,9 +87,9 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 
 .stTextInput > div > div > input { background: #141414 !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; color: #f0f0f0 !important; font-size: 1.08rem !important; padding: 0.65rem 1rem !important; }
 .stTextInput > div > div > input:focus { border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255,77,77,0.12) !important; }
-.stFormSubmitButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1.1rem !important; font-weight: 700 !important; letter-spacing: 2px !important; padding: 0.85rem 2.8rem !important; cursor: pointer !important; position: relative !important; z-index: 1 !important; }
-.stFormSubmitButton { position: relative !important; z-index: 1 !important; }
-.ask-form-wrap .stFormSubmitButton > button { background: #1a1a1a !important; color: #aaa !important; border: 1px solid #2a2a2a !important; font-size: 0.85rem !important; font-weight: 400 !important; letter-spacing: 1px !important; padding: 0.65rem 1.2rem !important; }
+.stFormSubmitButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1.1rem !important; font-weight: 700 !important; letter-spacing: 2px !important; padding: 0.85rem 2.8rem !important; }
+.ask-form-wrap .stFormSubmitButton > button { background: #1a1a1a !important; color: #aaa !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; font-size: 0.85rem !important; font-weight: 400 !important; letter-spacing: 1px !important; padding: 0 1.2rem !important; height: 42px !important; min-height: 42px !important; line-height: 42px !important; }
+.ask-form-wrap .stTextInput > div > div > input { height: 42px !important; min-height: 42px !important; padding: 0 1rem !important; box-sizing: border-box !important; }
 .stButton > button:hover { opacity: 0.85 !important; }
 /* Hide the invisible feed trigger buttons */
 [data-testid="stButton"] button[title] { 
@@ -101,6 +101,12 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 .bmac-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: #FFDD00; color: #000 !important; text-decoration: none !important; padding: 0.65rem 1.5rem; border-radius: 10px; font-weight: 600; font-size: 0.92rem; transition: opacity 0.2s; }
 .bmac-btn:hover { opacity: 0.85; }
 .footer-note { color: #333; font-size: 0.75rem; margin-top: 0.9rem; font-family: 'Space Mono', monospace; }
+
+/* Hide Streamlit header toolbar (GitHub fork/star/menu bar) */
+header[data-testid="stHeader"] { display: none !important; }
+#MainMenu { display: none !important; }
+[data-testid="stToolbar"] { display: none !important; }
+.stDeployButton { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
