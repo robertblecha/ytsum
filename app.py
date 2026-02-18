@@ -314,7 +314,7 @@ params = st.query_params
 qparam_vid = params.get("v", "")
 
 # If ?v= is set and we haven't loaded it yet this session, auto-load from cache
-if qparam_vid and st.session_state.get("video_id") != qparam_vid:
+if qparam_vid and st.session_state.get("loaded_vid") != qparam_vid:
     cached = load_cached_analysis(qparam_vid)
     if cached:
         st.session_state.update({
@@ -325,7 +325,9 @@ if qparam_vid and st.session_state.get("video_id") != qparam_vid:
             "analysis": cached.get("analysis"),
             "video_info": cached.get("info"),
             "from_cache": True,
+            "loaded_vid": qparam_vid,
         })
+        st.rerun()
 
 
 # ── UI ────────────────────────────────────────────────────────────────────────
@@ -522,9 +524,8 @@ if recent:
         with cols[i % 2]:
             ago = time_ago(v.get("timestamp", ""))
             vid_id = v["video_id"]
-            # Clickable card via button with custom HTML label
             st.markdown(f"""
-            <div class="feed-card" id="card_{vid_id}" onclick="document.getElementById('btn_{vid_id}').click()" style="cursor:pointer;">
+            <div class="feed-card" onclick="window.parent.location.href=window.parent.location.pathname+'?v={vid_id}'" style="cursor:pointer;">
                 <img class="feed-thumb" src="{v['thumb']}" onerror="this.style.background='#1a1a1a'"/>
                 <div style="min-width:0">
                     <div class="feed-title">{v['title']}</div>
@@ -532,23 +533,6 @@ if recent:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            # Hidden Streamlit button that the card click triggers
-            btn_container = st.container()
-            with btn_container:
-                if st.button(" ", key=f"feed_{vid_id}_{i}", help=v['title']):
-                    cached = load_cached_analysis(vid_id)
-                    if cached:
-                        st.session_state.update({
-                            "video_id": vid_id,
-                            "video_url": f"https://www.youtube.com/watch?v={vid_id}",
-                            "transcript": cached.get("transcript", ""),
-                            "lang": cached.get("lang", ""),
-                            "analysis": cached.get("analysis"),
-                            "video_info": cached.get("info"),
-                            "from_cache": True,
-                        })
-                        st.query_params["v"] = vid_id
-                        st.rerun()
 else:
     st.markdown("""
     <div style="text-align:center;color:#222;padding:2rem 0;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:2px;">
