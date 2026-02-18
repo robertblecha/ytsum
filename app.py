@@ -89,6 +89,8 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 .stTextInput > div > div > input:focus { border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255,77,77,0.12) !important; }
 .stButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 0.85rem !important; letter-spacing: 1px !important; padding: 0.6rem 1.6rem !important; }
 .stButton > button:hover { opacity: 0.85 !important; }
+/* Feed open buttons - smaller, secondary style */
+[data-testid="stButton"] button[kind="secondary"] { background: #1a1a1a !important; color: #888 !important; border: 1px solid #2a2a2a !important; font-size: 0.72rem !important; padding: 0.25rem 0.7rem !important; letter-spacing: 0.5px !important; }
 .stExpander { border: 1px solid #1e1e1e !important; border-radius: 12px !important; background: #141414 !important; }
 
 .footer { margin-top: 4rem; padding: 2rem 0 1rem; border-top: 1px solid #1a1a1a; text-align: center; }
@@ -99,23 +101,31 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 """, unsafe_allow_html=True)
 
 
-# ── Storage helpers (Streamlit Storage API) ───────────────────────────────────
+# ── Storage helpers (file-based, /tmp persists across sessions) ──────────────
+import os, hashlib
+
+STORAGE_DIR = "/tmp/ytsum_store"
+os.makedirs(STORAGE_DIR, exist_ok=True)
+
+def _key_path(key: str) -> str:
+    safe = hashlib.md5(key.encode()).hexdigest()
+    return os.path.join(STORAGE_DIR, f"{safe}.json")
 
 def storage_get(key: str) -> dict | None:
-    """Read from Streamlit persistent storage. Returns parsed dict or None."""
     try:
-        result = st.context.object_storage.get(key)
-        if result:
-            return json.loads(result)
+        path = _key_path(key)
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                return json.load(f)
     except Exception:
         pass
     return None
 
-
 def storage_set(key: str, value: dict):
-    """Write to Streamlit persistent storage."""
     try:
-        st.context.object_storage.set(key, json.dumps(value))
+        path = _key_path(key)
+        with open(path, "w") as f:
+            json.dump(value, f)
     except Exception:
         pass
 
@@ -420,23 +430,8 @@ if st.session_state.get("analysis"):
     info = st.session_state.get("video_info") or {}
     from_cache = st.session_state.get("from_cache", False)
 
-    # Share banner
     share_url = f"https://jc6yjewlm4knn7dltaihlg.streamlit.app/?v={video_id}"
     cache_badge = '<span class="cached-badge">✓ CACHED</span>' if from_cache else ''
-    st.markdown(f"""
-    <div class="share-banner">
-        {cache_badge}
-        <span class="share-url">🔗 {share_url}</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Copy button via clipboard JS
-    st.components.v1.html(f"""
-    <button onclick="navigator.clipboard.writeText('{share_url}').then(()=>{{this.innerText='✓ Copied!';setTimeout(()=>this.innerText='Copy link',2000)}})"
-    style="background:#1a1a1a;color:#aaa;border:1px solid #2a2a2a;border-radius:8px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer;font-family:monospace;margin-bottom:1rem">
-    Copy link
-    </button>
-    """, height=50)
 
     col_left, col_right = st.columns([1, 1], gap="large")
 
@@ -451,16 +446,26 @@ if st.session_state.get("analysis"):
         title_display = info.get("title", "")
         author_display = info.get("author", "")
         lang_display = st.session_state.get("lang", "")
-        if title_display:
-            st.markdown(f"""
-            <div class="video-meta">
-                <div class="video-title-display">{title_display}</div>
-                <div class="video-sub-meta">
+
+        # Title row with Share button
+        st.components.v1.html(f"""
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.4rem;padding-bottom:1.2rem;border-bottom:1px solid #1e1e1e;">
+            <div style="flex:1;min-width:0;">
+                {cache_badge}
+                <div style="font-size:1.45rem;font-weight:700;color:#f0f0f0;line-height:1.35;margin-bottom:0.5rem;font-family:'DM Sans',sans-serif;">{title_display}</div>
+                <div style="font-size:0.88rem;color:#555;font-family:'Space Mono',monospace;display:flex;gap:1.2rem;flex-wrap:wrap;">
                     <span>👤 {author_display}</span>
                     <span>🌐 {lang_display}</span>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            <button
+                title="Copy Share Link"
+                onclick="navigator.clipboard.writeText('{share_url}').then(()=>{{this.innerText='✓';this.style.color='#4caf50';this.style.borderColor='#4caf50';setTimeout(()=>{{this.innerText='⬆ Share';this.style.color='#aaa';this.style.borderColor='#2a2a2a'}},2000)}})"
+                style="flex-shrink:0;background:#1a1a1a;color:#aaa;border:1px solid #2a2a2a;border-radius:8px;padding:0.45rem 0.9rem;font-size:0.8rem;cursor:pointer;font-family:'Space Mono',monospace;letter-spacing:1px;white-space:nowrap;margin-top:4px;transition:all 0.2s;">
+                ⬆ Share
+            </button>
+        </div>
+        """, height=115)
 
         st.markdown('<div class="section-label">Ask a question about this video</div>', unsafe_allow_html=True)
         q_col, btn_col = st.columns([5, 1])
@@ -516,18 +521,30 @@ if recent:
     for i, v in enumerate(recent[:10]):
         with cols[i % 2]:
             ago = time_ago(v.get("timestamp", ""))
-            vid_url = f"?v={v['video_id']}"
+            vid_id = v["video_id"]
             st.markdown(f"""
-            <a href="{vid_url}" target="_self" style="text-decoration:none;display:block;">
-            <div class="feed-card">
-                <img class="feed-thumb" src="{v['thumb']}" onerror="this.style.background='#1a1a1a'"/>
-                <div style="min-width:0">
+            <div class="feed-card" style="padding:0;overflow:hidden;">
+                <img class="feed-thumb" src="{v['thumb']}" onerror="this.style.background='#1a1a1a'" style="margin:0.8rem 0 0.8rem 0.8rem;"/>
+                <div style="min-width:0;padding:0.8rem 0.8rem 0.8rem 0;">
                     <div class="feed-title">{v['title']}</div>
                     <div class="feed-meta">👤 {v.get('author','')} &nbsp;·&nbsp; {ago}</div>
                 </div>
             </div>
-            </a>
             """, unsafe_allow_html=True)
+            if st.button("▶ Open", key=f"feed_{vid_id}_{i}"):
+                cached = load_cached_analysis(vid_id)
+                if cached:
+                    st.session_state.update({
+                        "video_id": vid_id,
+                        "video_url": f"https://www.youtube.com/watch?v={vid_id}",
+                        "transcript": cached.get("transcript", ""),
+                        "lang": cached.get("lang", ""),
+                        "analysis": cached.get("analysis"),
+                        "video_info": cached.get("info"),
+                        "from_cache": True,
+                    })
+                    st.query_params["v"] = vid_id
+                    st.rerun()
 else:
     st.markdown("""
     <div style="text-align:center;color:#222;padding:2rem 0;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:2px;">
