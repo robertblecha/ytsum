@@ -439,8 +439,7 @@ if st.session_state.get("analysis"):
     lang_display = st.session_state.get("lang", "")
 
     # Title + share above columns
-    share_svg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>'
-    st.components.v1.html(f"""
+    html_title = f"""
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.2rem;padding-bottom:1.2rem;border-bottom:1px solid #1e1e1e;">
         <div style="flex:1;min-width:0;">
             {cache_badge}
@@ -451,13 +450,13 @@ if st.session_state.get("analysis"):
             </div>
         </div>
         <button id="sharebtn" title="Copy Share Link"
-            onclick="navigator.clipboard.writeText('{share_url}').then(function(){{var b=document.getElementById('sharebtn');b.innerText='✓';b.style.color='#4caf50';b.style.borderColor='#4caf50';setTimeout(function(){{b.innerHTML='{share_svg}';b.style.color='#aaa';b.style.borderColor='#2a2a2a'}},2000)}})"
+            onclick="navigator.clipboard.writeText('{share_url}').then(function(){{var b=document.getElementById('sharebtn');b.innerText='✓';b.style.color='#4caf50';b.style.borderColor='#4caf50';setTimeout(function(){{b.innerHTML= + SVG + ;b.style.color='#aaa';b.style.borderColor='#2a2a2a'}},2000)}})"
             style="flex-shrink:0;background:#1a1a1a;color:#aaa;border:1px solid #2a2a2a;border-radius:8px;padding:0.45rem 0.7rem;cursor:pointer;display:flex;align-items:center;margin-top:4px;transition:all 0.2s;">
-            {share_svg}
+            <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"18\" cy=\"5\" r=\"3\"></circle><circle cx=\"6\" cy=\"12\" r=\"3\"></circle><circle cx=\"18\" cy=\"19\" r=\"3\"></circle><line x1=\"8.59\" y1=\"13.51\" x2=\"15.42\" y2=\"17.49\"></line><line x1=\"15.41\" y1=\"6.51\" x2=\"8.59\" y2=\"10.49\"></line></svg>
         </button>
     </div>
-    """, height=100)
-
+    """
+    st.components.v1.html(html_title, height=100)
     col_left, col_right = st.columns([1, 1], gap="large")
 
     with col_left:
