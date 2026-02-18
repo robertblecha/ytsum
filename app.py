@@ -51,7 +51,7 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 .transcript-box::-webkit-scrollbar-track { background: #0a0a0a; }
 .transcript-box::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
 
-.answer-box { background: #0f0f0f; border-left: 3px solid #ff4d4d; padding: 1.1rem 1.4rem; border-radius: 0 10px 10px 0; font-size: 1rem; color: #d0d0d0; line-height: 1.8; margin-top: 0.8rem; }
+.answer-box { background: #0f0f0f; border-left: 3px solid #ff4d4d; padding: 1.1rem 1.4rem; border-radius: 0 10px 10px 0; font-size: 1.05rem; color: #bbb; line-height: 1.75; margin-top: 0.8rem; } .answer-box h1,.answer-box h2,.answer-box h3,.answer-box h4 { font-family: 'DM Sans', sans-serif !important; font-size: 1rem !important; font-weight: 600 !important; color: #d0d0d0; margin: 0.8rem 0 0.3rem 0; }
 
 .progress-wrap { background: #141414; border: 1px solid #222; border-radius: 14px; padding: 1.2rem 1.6rem; }
 .progress-step { display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0; font-size: 0.95rem; border-bottom: 1px solid #1a1a1a; }
@@ -85,7 +85,7 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 .share-url { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: #666; flex: 1; word-break: break-all; }
 .cached-badge { background: #1a2a1a; border: 1px solid #2a4a2a; color: #4caf50; font-family: 'Space Mono', monospace; font-size: 0.7rem; letter-spacing: 2px; padding: 0.25rem 0.6rem; border-radius: 4px; white-space: nowrap; }
 
-.stTextInput > div > div > input { background: #141414 !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; color: #f0f0f0 !important; font-size: 1rem !important; padding: 0.65rem 1rem !important; }
+.stTextInput > div > div > input { background: #141414 !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; color: #f0f0f0 !important; font-size: 1.08rem !important; padding: 0.65rem 1rem !important; }
 .stTextInput > div > div > input:focus { border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255,77,77,0.12) !important; }
 .stButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1rem !important; letter-spacing: 2px !important; padding: 0.75rem 2.5rem !important; }
 .stButton > button:hover { opacity: 0.85 !important; }
@@ -335,14 +335,14 @@ if qparam_vid and st.session_state.get("loaded_vid") != qparam_vid:
 st.markdown('<div class="main-title">YT <span class="accent">//</span> Summarizer</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Transcript · Summary · Q&A — for any YouTube video</div>', unsafe_allow_html=True)
 
-url_input = st.text_input(
-    label="YouTube URL",
-    placeholder="https://www.youtube.com/watch?v=...",
-    label_visibility="collapsed",
-    value=f"https://www.youtube.com/watch?v={qparam_vid}" if qparam_vid and st.session_state.get("from_cache") else "",
-)
-
-analyze_btn = st.button("▶  ANALYZE", use_container_width=False)
+with st.form(key="analyze_form", border=False):
+    url_input = st.text_input(
+        label="YouTube URL",
+        placeholder="https://www.youtube.com/watch?v=...",
+        label_visibility="collapsed",
+        value=f"https://www.youtube.com/watch?v={qparam_vid}" if qparam_vid and st.session_state.get("from_cache") else "",
+    )
+    analyze_btn = st.form_submit_button("▶  ANALYZE")
 
 # ── Analysis flow ─────────────────────────────────────────────────────────────
 
@@ -442,7 +442,7 @@ if st.session_state.get("analysis"):
     _t_col, _s_col = st.columns([11, 1])
     with _t_col:
         st.markdown(
-            f'<div style="font-size:1.45rem;font-weight:700;color:#f0f0f0;line-height:1.35;margin-bottom:0.4rem;">{title_display}</div>'
+            f'<div style="font-size:1.7rem;font-weight:700;color:#f0f0f0;line-height:1.3;margin-bottom:0.4rem;">{title_display}</div>'
             f'<div style="font-size:0.88rem;color:#555;font-family:Space Mono,monospace;">&#128100; {author_display} &nbsp;&middot;&nbsp; &#127760; {lang_display}</div>'
             f'<div style="border-top:1px solid #1e1e1e;margin-top:1rem;"></div>',
             unsafe_allow_html=True
@@ -450,11 +450,11 @@ if st.session_state.get("analysis"):
     with _s_col:
         st.components.v1.html(
             '<button onclick="navigator.clipboard.writeText(\'' + share_url + '\')" title="Copy Share Link" '
-            'style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:6px 8px;cursor:pointer;">'
-            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+            'style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:#aaa;font-family:monospace;font-size:12px;white-space:nowrap;">'
+            '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
             '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>'
             '<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>'
-            '</svg></button>',
+            '</svg>Share Link</button>',
             height=45
         )
     col_left, col_right = st.columns([1, 1], gap="large")
@@ -468,11 +468,12 @@ if st.session_state.get("analysis"):
         """, unsafe_allow_html=True)
 
         st.markdown('<div class="section-label">Ask a question about this video</div>', unsafe_allow_html=True)
-        q_col, btn_col = st.columns([5, 1])
-        with q_col:
-            question = st.text_input("Question", placeholder="What does it say about...?", label_visibility="collapsed", key="question_input")
-        with btn_col:
-            ask_btn = st.button("ASK")
+        with st.form(key="ask_form", border=False):
+            q_col, btn_col = st.columns([5, 1])
+            with q_col:
+                question = st.text_input("Question", placeholder="What does it say about...?", label_visibility="collapsed", key="question_input")
+            with btn_col:
+                ask_btn = st.form_submit_button("ASK")
 
         if ask_btn and question:
             with st.spinner("Finding the answer..."):
