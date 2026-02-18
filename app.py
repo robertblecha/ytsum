@@ -9,242 +9,167 @@ import urllib.request
 from datetime import datetime, timezone
 
 # ── Page config ───────────────────────────────────────────────────────────────
-st.set_page_config(
-    page_title="YT Summarizer",
-    page_icon="▶",
-    layout="wide",
-)
+st.set_page_config(page_title="YT Summarizer", page_icon="▶", layout="wide")
 
-# ── Buy Me a Coffee URL — change this to your own ─────────────────────────────
 BMAC_URL = "https://buymeacoffee.com/robertiscreating"
 
 # ── Styles ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
 
 html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-
 .stApp { background: #0a0a0a; color: #f0f0f0; }
-
 h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 
 .main-title {
     font-family: 'Space Mono', monospace;
-    font-size: 2.4rem;
-    font-weight: 700;
-    color: #f0f0f0;
-    letter-spacing: -1px;
-    line-height: 1.1;
-    margin-bottom: 0.2rem;
+    font-size: 2.5rem; font-weight: 700; color: #f0f0f0;
+    letter-spacing: -1px; line-height: 1.1; margin-bottom: 0.3rem;
 }
-
-.subtitle { font-family: 'DM Sans', sans-serif; color: #666; font-size: 1rem; margin-bottom: 2rem; }
+.subtitle { color: #555; font-size: 1.05rem; margin-bottom: 2rem; line-height: 1.6; }
 .accent { color: #ff4d4d; }
 
-.card {
-    background: #141414;
-    border: 1px solid #222;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.2rem;
-}
+.card { background: #141414; border: 1px solid #222; border-radius: 14px; padding: 1.6rem; margin-bottom: 1.2rem; }
 
 .section-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: #ff4d4d;
-    margin-bottom: 0.8rem;
+    font-family: 'Space Mono', monospace; font-size: 0.68rem;
+    letter-spacing: 3px; text-transform: uppercase; color: #ff4d4d; margin-bottom: 1rem;
 }
 
-.summary-text { font-size: 1.05rem; line-height: 1.75; color: #d0d0d0; }
+.video-meta { margin-bottom: 1.4rem; padding-bottom: 1.2rem; border-bottom: 1px solid #1e1e1e; }
+.video-title-display { font-size: 1.25rem; font-weight: 600; color: #f0f0f0; line-height: 1.4; margin-bottom: 0.4rem; }
+.video-sub-meta { font-size: 0.88rem; color: #555; font-family: 'Space Mono', monospace; display: flex; gap: 1.2rem; flex-wrap: wrap; }
+.video-sub-meta span { display: flex; align-items: center; gap: 0.3rem; }
 
-.bullet-item {
-    display: flex;
-    gap: 0.8rem;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid #1e1e1e;
-    font-size: 0.95rem;
-    color: #c0c0c0;
-    line-height: 1.5;
-}
+.summary-text { font-size: 1.08rem; line-height: 1.85; color: #d8d8d8; font-weight: 500; }
 
-.bullet-dot { color: #ff4d4d; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+.bullet-item { display: flex; gap: 0.9rem; padding: 0.7rem 0; border-bottom: 1px solid #1e1e1e; font-size: 0.98rem; color: #bbb; line-height: 1.65; }
+.bullet-item:last-child { border-bottom: none; }
+.bullet-dot { color: #ff4d4d; font-weight: 700; flex-shrink: 0; margin-top: 3px; }
 
-.transcript-box {
-    max-height: 350px;
-    overflow-y: auto;
-    font-size: 0.88rem;
-    color: #888;
-    line-height: 1.7;
-    padding-right: 0.5rem;
-}
-
+.transcript-box { max-height: 380px; overflow-y: auto; font-size: 0.92rem; color: #777; line-height: 1.85; padding-right: 0.5rem; }
 .transcript-box::-webkit-scrollbar { width: 4px; }
 .transcript-box::-webkit-scrollbar-track { background: #0a0a0a; }
-.transcript-box::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+.transcript-box::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
 
-.answer-box {
-    background: #0f0f0f;
-    border-left: 3px solid #ff4d4d;
-    padding: 1rem 1.2rem;
-    border-radius: 0 8px 8px 0;
-    font-size: 0.98rem;
-    color: #d0d0d0;
-    line-height: 1.7;
-}
+.answer-box { background: #0f0f0f; border-left: 3px solid #ff4d4d; padding: 1.1rem 1.4rem; border-radius: 0 10px 10px 0; font-size: 1rem; color: #d0d0d0; line-height: 1.8; margin-top: 0.8rem; }
 
-/* Recent videos feed */
-.feed-card {
-    background: #111;
-    border: 1px solid #1e1e1e;
-    border-radius: 10px;
-    padding: 0.75rem;
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-    margin-bottom: 0.6rem;
-    transition: border-color 0.2s;
-}
-.feed-card:hover { border-color: #333; }
-.feed-thumb {
-    width: 80px;
-    height: 45px;
-    object-fit: cover;
-    border-radius: 6px;
-    flex-shrink: 0;
-    background: #1a1a1a;
-}
-.feed-title {
-    font-size: 0.82rem;
-    color: #ccc;
-    line-height: 1.4;
-    margin-bottom: 0.3rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-.feed-meta {
-    font-size: 0.72rem;
-    color: #555;
-    font-family: 'Space Mono', monospace;
-}
-
-/* Progress steps */
-.progress-step {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0;
-    font-size: 0.9rem;
-    color: #888;
-    border-bottom: 1px solid #1a1a1a;
-}
-.progress-step.done { color: #4caf50; }
-.progress-step.active { color: #ff4d4d; }
+.progress-wrap { background: #141414; border: 1px solid #222; border-radius: 14px; padding: 1.2rem 1.6rem; }
+.progress-step { display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0; font-size: 0.95rem; border-bottom: 1px solid #1a1a1a; }
+.progress-step:last-child { border-bottom: none; }
 .step-icon { font-size: 1rem; width: 1.4rem; text-align: center; }
+.progress-bar-wrap { margin-top: 0.8rem; background: #1a1a1a; border-radius: 4px; height: 4px; overflow: hidden; }
+.progress-bar-fill { height: 4px; background: #ff4d4d; border-radius: 4px; }
 
-/* Input & buttons */
-.stTextInput > div > div > input {
-    background: #141414 !important;
-    border: 1px solid #2a2a2a !important;
-    border-radius: 8px !important;
-    color: #f0f0f0 !important;
+.stats-row { display: flex; gap: 2rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+.stat-item { text-align: left; }
+.stat-number { font-family: 'Space Mono', monospace; font-size: 1.6rem; font-weight: 700; color: #ff4d4d; line-height: 1; }
+.stat-label { font-size: 0.78rem; color: #555; margin-top: 0.2rem; letter-spacing: 1px; text-transform: uppercase; }
+
+.feed-card {
+    background: #111; border: 1px solid #1a1a1a; border-radius: 10px;
+    padding: 0.8rem; display: flex; gap: 0.8rem; align-items: flex-start;
+    margin-bottom: 0.6rem; transition: border-color 0.2s;
+    text-decoration: none; color: inherit; cursor: pointer;
 }
-.stTextInput > div > div > input:focus {
-    border-color: #ff4d4d !important;
-    box-shadow: 0 0 0 2px rgba(255,77,77,0.15) !important;
+.feed-card:hover { border-color: #ff4d4d44; background: #161616; }
+.feed-thumb { width: 88px; height: 50px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #1a1a1a; }
+.feed-title { font-size: 0.85rem; color: #ccc; line-height: 1.45; margin-bottom: 0.35rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.feed-meta { font-size: 0.73rem; color: #444; font-family: 'Space Mono', monospace; }
+
+/* Share banner */
+.share-banner {
+    background: #111; border: 1px solid #2a2a2a; border-radius: 10px;
+    padding: 0.8rem 1.2rem; display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.2rem; flex-wrap: wrap;
 }
-.stButton > button {
-    background: #ff4d4d !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-family: 'Space Mono', monospace !important;
-    font-size: 0.85rem !important;
-    letter-spacing: 1px !important;
-    padding: 0.5rem 1.5rem !important;
-    transition: opacity 0.2s !important;
-}
+.share-url { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: #666; flex: 1; word-break: break-all; }
+.cached-badge { background: #1a2a1a; border: 1px solid #2a4a2a; color: #4caf50; font-family: 'Space Mono', monospace; font-size: 0.7rem; letter-spacing: 2px; padding: 0.25rem 0.6rem; border-radius: 4px; white-space: nowrap; }
+
+.stTextInput > div > div > input { background: #141414 !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; color: #f0f0f0 !important; font-size: 1rem !important; padding: 0.65rem 1rem !important; }
+.stTextInput > div > div > input:focus { border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255,77,77,0.12) !important; }
+.stButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 0.85rem !important; letter-spacing: 1px !important; padding: 0.6rem 1.6rem !important; }
 .stButton > button:hover { opacity: 0.85 !important; }
+.stExpander { border: 1px solid #1e1e1e !important; border-radius: 12px !important; background: #141414 !important; }
 
-.stExpander { border: 1px solid #222 !important; border-radius: 10px !important; background: #141414 !important; }
-
-/* Footer */
-.footer {
-    margin-top: 4rem;
-    padding: 2rem 0 1rem 0;
-    border-top: 1px solid #1a1a1a;
-    text-align: center;
-}
-.bmac-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: #FFDD00;
-    color: #000 !important;
-    text-decoration: none !important;
-    padding: 0.6rem 1.4rem;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: opacity 0.2s;
-}
+.footer { margin-top: 4rem; padding: 2rem 0 1rem; border-top: 1px solid #1a1a1a; text-align: center; }
+.bmac-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: #FFDD00; color: #000 !important; text-decoration: none !important; padding: 0.65rem 1.5rem; border-radius: 10px; font-weight: 600; font-size: 0.92rem; transition: opacity 0.2s; }
 .bmac-btn:hover { opacity: 0.85; }
-.footer-note { color: #444; font-size: 0.78rem; margin-top: 0.8rem; font-family: 'Space Mono', monospace; }
+.footer-note { color: #333; font-size: 0.75rem; margin-top: 0.9rem; font-family: 'Space Mono', monospace; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Storage helpers (Streamlit Storage API) ───────────────────────────────────
 
-def extract_video_id(url: str) -> str | None:
-    for p in [r"(?:v=|youtu\.be/|embed/|shorts/)([A-Za-z0-9_-]{11})"]:
-        m = re.search(p, url)
-        if m:
-            return m.group(1)
+def storage_get(key: str) -> dict | None:
+    """Read from Streamlit persistent storage. Returns parsed dict or None."""
+    try:
+        result = st.context.object_storage.get(key)
+        if result:
+            return json.loads(result)
+    except Exception:
+        pass
     return None
 
 
-def get_video_title(video_id: str) -> str:
-    """Fetch video title from YouTube oEmbed API (no key needed)"""
+def storage_set(key: str, value: dict):
+    """Write to Streamlit persistent storage."""
+    try:
+        st.context.object_storage.set(key, json.dumps(value))
+    except Exception:
+        pass
+
+
+# ── In-memory shared store for recent/stats (fast, server lifetime) ───────────
+@st.cache_resource
+def get_shared_store():
+    # Try to load persisted feed on first boot
+    persisted = None
+    try:
+        persisted = storage_get("feed:meta")
+    except Exception:
+        pass
+    if persisted:
+        return persisted
+    return {"recent_videos": [], "total_count": 0, "total_words": 0}
+
+shared = get_shared_store()
+
+
+def persist_shared():
+    storage_set("feed:meta", {
+        "recent_videos": shared["recent_videos"],
+        "total_count": shared["total_count"],
+        "total_words": shared["total_words"],
+    })
+
+
+# ── Core helpers ──────────────────────────────────────────────────────────────
+
+def extract_video_id(url: str) -> str | None:
+    m = re.search(r"(?:v=|youtu\.be/|embed/|shorts/)([A-Za-z0-9_-]{11})", url)
+    return m.group(1) if m else None
+
+
+def get_video_info(video_id: str) -> dict:
     try:
         url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
-        with urllib.request.urlopen(url, timeout=5) as r:
+        with urllib.request.urlopen(url, timeout=6) as r:
             data = json.loads(r.read())
-            return data.get("title", "Unknown title")
+            return {"title": data.get("title", "Unknown title"), "author": data.get("author_name", "Unknown")}
     except Exception:
-        return "Unknown title"
-
-
-def get_user_location() -> dict:
-    """Get approximate location from IP geolocation"""
-    try:
-        with urllib.request.urlopen("https://ipapi.co/json/", timeout=5) as r:
-            data = json.loads(r.read())
-            country = data.get("country_name", "Unknown")
-            city = data.get("city", "Unknown")
-            country_code = data.get("country_code", "").lower()
-            flag = "".join(chr(0x1F1E6 + ord(c) - ord('A')) for c in country_code.upper()) if country_code else "🌍"
-            return {"country": country, "city": city, "flag": flag}
-    except Exception:
-        return {"country": "Unknown", "city": "Unknown", "flag": "🌍"}
+        return {"title": "Unknown title", "author": "Unknown"}
 
 
 def time_ago(iso_str: str) -> str:
     try:
         dt = datetime.fromisoformat(iso_str)
-        diff = datetime.now(timezone.utc) - dt
-        s = int(diff.total_seconds())
-        if s < 60:
-            return "just now"
-        if s < 3600:
-            return f"{s // 60}m ago"
-        if s < 86400:
-            return f"{s // 3600}h ago"
+        s = int((datetime.now(timezone.utc) - dt).total_seconds())
+        if s < 60: return "just now"
+        if s < 3600: return f"{s // 60}m ago"
+        if s < 86400: return f"{s // 3600}h ago"
         return f"{s // 86400}d ago"
     except Exception:
         return ""
@@ -253,13 +178,11 @@ def time_ago(iso_str: str) -> str:
 def get_transcript(video_id: str) -> tuple[str, str]:
     try:
         ytt = YouTubeTranscriptApi()
-        transcript_list = ytt.list(video_id)
-        all_transcripts = list(transcript_list)
-
+        all_transcripts = list(ytt.list(video_id))
         if not all_transcripts:
             raise RuntimeError("No subtitles found for this video.")
 
-        def preference(t):
+        def pref(t):
             if t.language_code == "cs" and not t.is_generated: return 0
             if t.language_code == "en" and not t.is_generated: return 1
             if t.language_code == "cs": return 2
@@ -267,13 +190,11 @@ def get_transcript(video_id: str) -> tuple[str, str]:
             if not t.is_generated: return 4
             return 5
 
-        all_transcripts.sort(key=preference)
+        all_transcripts.sort(key=pref)
         chosen = all_transcripts[0]
         fetched = ytt.fetch(video_id, languages=[chosen.language_code])
         text = " ".join(s.text for s in fetched)
-        lang_type = "auto" if chosen.is_generated else "manual"
-        return text, f"{chosen.language_code} ({lang_type})"
-
+        return text, f"{chosen.language_code} ({'auto' if chosen.is_generated else 'manual'})"
     except TranscriptsDisabled:
         raise RuntimeError("Subtitles are disabled for this video.")
     except RuntimeError:
@@ -282,7 +203,7 @@ def get_transcript(video_id: str) -> tuple[str, str]:
         raise RuntimeError(f"Error: {type(e).__name__}: {e}")
 
 
-def get_claude_client() -> anthropic.Anthropic:
+def get_claude_client():
     api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         raise RuntimeError("Missing ANTHROPIC_API_KEY in Streamlit secrets.")
@@ -313,129 +234,90 @@ BULLETS:
 Respond in the same language as the transcript. If mixed, prefer English."""
 
     response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=1500,
+        model="claude-opus-4-6", max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
     raw = response.content[0].text
-
     summary, bullets = "", []
     if "SUMMARY:" in raw and "BULLETS:" in raw:
         summary = raw.split("BULLETS:")[0].replace("SUMMARY:", "").strip()
-        bullets_part = raw.split("BULLETS:")[1].strip()
-        bullets = [
-            line.lstrip("- •").strip()
-            for line in bullets_part.splitlines()
-            if line.strip().startswith("-") or line.strip().startswith("•")
-        ]
+        bullets = [l.lstrip("- •").strip() for l in raw.split("BULLETS:")[1].strip().splitlines() if l.strip().startswith(("-", "•"))]
     else:
         summary = raw
-
     return {"summary": summary, "bullets": bullets}
 
 
 def claude_answer(transcript: str, question: str) -> str:
-    client = get_claude_client()
-    prompt = f"""Based on this YouTube video transcript, answer the user's question.
+    response = get_claude_client().messages.create(
+        model="claude-opus-4-6", max_tokens=800,
+        messages=[{"role": "user", "content": f"""Based on this YouTube video transcript, answer the user's question concisely and accurately. If the answer is not in the transcript, say so.
 
 TRANSCRIPT:
 {transcript[:12000]}
 
-QUESTION: {question}
-
-Answer concisely and accurately. If the answer is not in the transcript, say so."""
-
-    response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=800,
-        messages=[{"role": "user", "content": prompt}]
+QUESTION: {question}"""}]
     )
     return response.content[0].text
 
 
-# ── Persistent storage helpers ─────────────────────────────────────────────────
-
-async def load_recent_videos():
-    try:
-        result = await st.context.storage.get("recent_videos", True)
-        if result:
-            return json.loads(result["value"])
-    except Exception:
-        pass
-    return []
+def load_cached_analysis(video_id: str) -> dict | None:
+    return storage_get(f"cache:{video_id}")
 
 
-async def save_recent_videos(videos: list):
-    try:
-        await st.context.storage.set("recent_videos", json.dumps(videos), True)
-    except Exception:
-        pass
+def save_cached_analysis(video_id: str, payload: dict):
+    storage_set(f"cache:{video_id}", payload)
 
 
-def load_recent_videos_sync() -> list:
-    """Load from session state cache (populated on startup)"""
-    return st.session_state.get("_recent_videos_cache", [])
-
-
-def add_to_recent(video_id: str, title: str, location: dict):
-    """Add video to recent list stored in session state"""
-    videos = load_recent_videos_sync()
-    # Remove duplicate if exists
-    videos = [v for v in videos if v.get("video_id") != video_id]
+def add_to_recent(video_id: str, info: dict, word_count: int):
     entry = {
         "video_id": video_id,
-        "title": title,
+        "title": info["title"],
+        "author": info["author"],
         "thumb": f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "flag": location["flag"],
-        "city": location["city"],
-        "country": location["country"],
     }
-    videos.insert(0, entry)
-    videos = videos[:20]  # Keep last 20
-    st.session_state["_recent_videos_cache"] = videos
-    # Also persist to Streamlit storage if available
-    try:
-        import asyncio
-        # Store in session for persistence across reloads via query params workaround
-        st.session_state["_recent_videos_json"] = json.dumps(videos)
-    except Exception:
-        pass
-
-
-# ── Initialize session state ──────────────────────────────────────────────────
-
-if "_recent_videos_cache" not in st.session_state:
-    # Try to load from a shared source — use a simple file-based approach via secrets or default empty
-    st.session_state["_recent_videos_cache"] = []
-
-# Use Streamlit's built-in storage API for shared state across users
-@st.cache_resource
-def get_shared_store():
-    """In-memory shared store that persists for the lifetime of the server process"""
-    return {"recent_videos": []}
-
-shared = get_shared_store()
-
-
-def add_to_shared_recent(video_id: str, title: str, location: dict):
-    entry = {
-        "video_id": video_id,
-        "title": title,
-        "thumb": f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "flag": location["flag"],
-        "city": location["city"],
-        "country": location["country"],
-    }
-    videos = shared["recent_videos"]
-    videos = [v for v in videos if v.get("video_id") != video_id]
+    videos = [v for v in shared["recent_videos"] if v.get("video_id") != video_id]
     videos.insert(0, entry)
     shared["recent_videos"] = videos[:20]
+    shared["total_count"] += 1
+    shared["total_words"] += word_count
+    persist_shared()
 
 
-def get_shared_recent() -> list:
-    return shared.get("recent_videos", [])
+def render_progress(placeholder, steps, pct):
+    icons = {"done": "✅", "active": "⏳", "pending": "○"}
+    colors = {"done": "#4caf50", "active": "#ff4d4d", "pending": "#333"}
+    rows = "".join(
+        f'<div class="progress-step"><span class="step-icon">{icons[s]}</span><span style="color:{colors[s]};font-size:0.95rem">{l}</span></div>'
+        for l, s in steps
+    )
+    placeholder.markdown(f"""
+    <div class="progress-wrap">
+        <div class="section-label">Processing</div>
+        {rows}
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:{pct}%"></div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ── Query param handling ──────────────────────────────────────────────────────
+
+params = st.query_params
+qparam_vid = params.get("v", "")
+
+# If ?v= is set and we haven't loaded it yet this session, auto-load from cache
+if qparam_vid and st.session_state.get("video_id") != qparam_vid:
+    cached = load_cached_analysis(qparam_vid)
+    if cached:
+        st.session_state.update({
+            "video_id": qparam_vid,
+            "video_url": f"https://www.youtube.com/watch?v={qparam_vid}",
+            "transcript": cached.get("transcript", ""),
+            "lang": cached.get("lang", ""),
+            "analysis": cached.get("analysis"),
+            "video_info": cached.get("info"),
+            "from_cache": True,
+        })
 
 
 # ── UI ────────────────────────────────────────────────────────────────────────
@@ -447,87 +329,90 @@ url_input = st.text_input(
     label="YouTube URL",
     placeholder="https://www.youtube.com/watch?v=...",
     label_visibility="collapsed",
+    value=f"https://www.youtube.com/watch?v={qparam_vid}" if qparam_vid and st.session_state.get("from_cache") else "",
 )
 
-col_btn, col_space = st.columns([1, 5])
+col_btn, _ = st.columns([1, 5])
 with col_btn:
     analyze_btn = st.button("▶  ANALYZE")
 
-# ── Progress + Analysis ───────────────────────────────────────────────────────
+# ── Analysis flow ─────────────────────────────────────────────────────────────
 
 if analyze_btn and url_input:
     video_id = extract_video_id(url_input)
     if not video_id:
         st.error("Couldn't recognize YouTube URL. Try a different format.")
     else:
-        st.markdown("---")
-        progress_placeholder = st.empty()
+        # Check cache first
+        cached = load_cached_analysis(video_id)
+        if cached:
+            st.session_state.update({
+                "video_id": video_id,
+                "video_url": url_input,
+                "transcript": cached.get("transcript", ""),
+                "lang": cached.get("lang", ""),
+                "analysis": cached.get("analysis"),
+                "video_info": cached.get("info"),
+                "from_cache": True,
+            })
+            st.query_params["v"] = video_id
+            st.rerun()
+        else:
+            st.session_state["from_cache"] = False
+            st.markdown("---")
+            prog = st.empty()
 
-        def render_progress(steps):
-            icons = {"done": "✅", "active": "⏳", "pending": "○"}
-            colors = {"done": "#4caf50", "active": "#ff4d4d", "pending": "#444"}
-            html = '<div class="card" style="padding:1rem 1.5rem;">'
-            html += '<div class="section-label">Processing</div>'
-            for label, state in steps:
-                icon = icons[state]
-                color = colors[state]
-                html += f'<div class="progress-step {state}"><span class="step-icon">{icon}</span><span style="color:{color}">{label}</span></div>'
-            html += '</div>'
-            progress_placeholder.markdown(html, unsafe_allow_html=True)
+            render_progress(prog, [
+                ("Fetching transcript from YouTube...", "active"),
+                ("Analyzing with Claude AI...", "pending"),
+            ], 15)
 
-        # Step 1: Fetch transcript
-        render_progress([
-            ("Fetching transcript from YouTube...", "active"),
-            ("Analyzing with Claude AI...", "pending"),
-            ("Getting your location...", "pending"),
-        ])
+            try:
+                transcript_text, lang = get_transcript(video_id)
+                st.session_state.update({
+                    "transcript": transcript_text, "video_url": url_input,
+                    "video_id": video_id, "lang": lang, "analysis": None, "video_info": None,
+                })
+            except RuntimeError as e:
+                prog.empty(); st.error(str(e)); st.stop()
 
-        try:
-            transcript_text, lang = get_transcript(video_id)
-            st.session_state["transcript"] = transcript_text
-            st.session_state["video_url"] = url_input
-            st.session_state["video_id"] = video_id
-            st.session_state["lang"] = lang
-            st.session_state["analysis"] = None
-        except RuntimeError as e:
-            progress_placeholder.empty()
-            st.error(str(e))
-            st.stop()
+            render_progress(prog, [
+                ("Fetching transcript from YouTube...", "done"),
+                ("Analyzing with Claude AI...", "active"),
+            ], 55)
 
-        # Step 2: Claude analysis
-        render_progress([
-            ("Fetching transcript from YouTube...", "done"),
-            ("Analyzing with Claude AI...", "active"),
-            ("Getting your location...", "pending"),
-        ])
+            try:
+                analysis = claude_analyze(transcript_text, url_input)
+                st.session_state["analysis"] = analysis
+            except RuntimeError as e:
+                prog.empty(); st.error(str(e)); st.stop()
 
-        try:
-            analysis = claude_analyze(transcript_text, url_input)
-            st.session_state["analysis"] = analysis
-        except RuntimeError as e:
-            progress_placeholder.empty()
-            st.error(str(e))
-            st.stop()
+            render_progress(prog, [
+                ("Fetching transcript from YouTube...", "done"),
+                ("Analyzing with Claude AI...", "done"),
+            ], 100)
 
-        # Step 3: Location + title
-        render_progress([
-            ("Fetching transcript from YouTube...", "done"),
-            ("Analyzing with Claude AI...", "done"),
-            ("Getting your location...", "active"),
-        ])
+            info = get_video_info(video_id)
+            st.session_state["video_info"] = info
 
-        location = get_user_location()
-        title = get_video_title(video_id)
-        add_to_shared_recent(video_id, title, location)
+            # Save to persistent cache
+            save_cached_analysis(video_id, {
+                "transcript": transcript_text,
+                "lang": lang,
+                "analysis": analysis,
+                "info": info,
+                "cached_at": datetime.now(timezone.utc).isoformat(),
+            })
 
-        render_progress([
-            ("Fetching transcript from YouTube...", "done"),
-            ("Analyzing with Claude AI...", "done"),
-            ("Getting your location...", "done"),
-        ])
+            # Update feed + stats
+            add_to_recent(video_id, info, len(transcript_text.split()))
 
-        time.sleep(0.5)
-        progress_placeholder.empty()
+            # Set query param for shareable URL
+            st.query_params["v"] = video_id
+
+            time.sleep(0.4)
+            prog.empty()
+            st.rerun()
 
 # ── Results ───────────────────────────────────────────────────────────────────
 
@@ -536,26 +421,71 @@ if st.session_state.get("analysis"):
     analysis = st.session_state["analysis"]
     transcript_text = st.session_state["transcript"]
     video_id = st.session_state["video_id"]
+    info = st.session_state.get("video_info") or {}
+    from_cache = st.session_state.get("from_cache", False)
 
-    # Video embed
+    # Share banner
+    share_url = f"https://jc6yjewlm4knn7dltaihlg.streamlit.app/?v={video_id}"
+    cache_badge = '<span class="cached-badge">✓ CACHED</span>' if from_cache else ''
     st.markdown(f"""
-    <div class="card" style="padding:0; overflow:hidden; border-radius:12px;">
-        <iframe width="100%" height="340" src="https://www.youtube.com/embed/{video_id}"
-        frameborder="0" allowfullscreen style="display:block;"></iframe>
+    <div class="share-banner">
+        {cache_badge}
+        <span class="share-url">🔗 {share_url}</span>
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
+    # Copy button via clipboard JS
+    st.components.v1.html(f"""
+    <button onclick="navigator.clipboard.writeText('{share_url}').then(()=>{{this.innerText='✓ Copied!';setTimeout(()=>this.innerText='Copy link',2000)}})"
+    style="background:#1a1a1a;color:#aaa;border:1px solid #2a2a2a;border-radius:8px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer;font-family:monospace;margin-bottom:1rem">
+    Copy link
+    </button>
+    """, height=50)
 
-    with col1:
+    col_left, col_right = st.columns([1, 1], gap="large")
+
+    with col_left:
         st.markdown(f"""
-        <div class="card">
-            <div class="section-label">Summary</div>
-            <div class="summary-text">{analysis["summary"]}</div>
+        <div style="border-radius:12px; overflow:hidden; margin-bottom:1.2rem;">
+            <iframe width="100%" height="280" src="https://www.youtube.com/embed/{video_id}"
+            frameborder="0" allowfullscreen style="display:block;"></iframe>
         </div>
         """, unsafe_allow_html=True)
 
-    with col2:
+        title_display = info.get("title", "")
+        author_display = info.get("author", "")
+        lang_display = st.session_state.get("lang", "")
+        if title_display:
+            st.markdown(f"""
+            <div class="video-meta">
+                <div class="video-title-display">{title_display}</div>
+                <div class="video-sub-meta">
+                    <span>👤 {author_display}</span>
+                    <span>🌐 {lang_display}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown('<div class="section-label">Ask a question about this video</div>', unsafe_allow_html=True)
+        q_col, btn_col = st.columns([5, 1])
+        with q_col:
+            question = st.text_input("Question", placeholder="What does it say about...?", label_visibility="collapsed", key="question_input")
+        with btn_col:
+            ask_btn = st.button("ASK")
+
+        if ask_btn and question:
+            with st.spinner("Finding the answer..."):
+                answer = claude_answer(transcript_text, question)
+            st.markdown(f'<div class="answer-box">{answer}</div>', unsafe_allow_html=True)
+
+    with col_right:
+        st.markdown(f"""
+        <div class="card">
+            <div class="section-label">Summary</div>
+            <div class="summary-text"><strong>{analysis["summary"]}</strong></div>
+        </div>
+        """, unsafe_allow_html=True)
+
         bullets_html = "".join(
             f'<div class="bullet-item"><span class="bullet-dot">→</span><span>{b}</span></div>'
             for b in analysis["bullets"]
@@ -567,70 +497,59 @@ if st.session_state.get("analysis"):
         </div>
         """, unsafe_allow_html=True)
 
-    with st.expander("📄  Show full transcript"):
-        st.markdown(f'<div class="transcript-box">{transcript_text}</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="section-label" style="margin-top:1.5rem;">Ask a question about this video</div>', unsafe_allow_html=True)
-    q_col, btn_col = st.columns([5, 1])
-    with q_col:
-        question = st.text_input(
-            "Question",
-            placeholder="What does it say about...? When did they mention...?",
-            label_visibility="collapsed",
-            key="question_input"
-        )
-    with btn_col:
-        ask_btn = st.button("ASK")
-
-    if ask_btn and question:
-        with st.spinner("Finding the answer..."):
-            answer = claude_answer(transcript_text, question)
-        st.markdown(f'<div class="answer-box">{answer}</div>', unsafe_allow_html=True)
+        with st.expander("📄  Show full transcript"):
+            st.markdown(f'<div class="transcript-box">{transcript_text}</div>', unsafe_allow_html=True)
 
 # ── Recent videos feed ────────────────────────────────────────────────────────
 
 st.markdown("---")
-recent = get_shared_recent()
+recent = shared.get("recent_videos", [])
+total_count = shared.get("total_count", 0)
+total_minutes = shared.get("total_words", 0) // 130
 
 if recent:
-    st.markdown('<div class="section-label">Recently summarized by others</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="stats-row">
+        <div class="stat-item"><div class="stat-number">{total_count}</div><div class="stat-label">Videos analyzed</div></div>
+        <div class="stat-item"><div class="stat-number">{total_minutes:,}</div><div class="stat-label">Minutes of content</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="section-label">Recently summarized</div>', unsafe_allow_html=True)
     cols = st.columns(2)
     for i, v in enumerate(recent[:10]):
         with cols[i % 2]:
             ago = time_ago(v.get("timestamp", ""))
-            geo = f"{v.get('flag','')} {v.get('city','')}, {v.get('country','')}"
+            vid_url = f"?v={v['video_id']}"
             st.markdown(f"""
+            <a href="{vid_url}" target="_self" style="text-decoration:none;display:block;">
             <div class="feed-card">
-                <img class="feed-thumb" src="{v['thumb']}" onerror="this.style.display='none'"/>
-                <div>
+                <img class="feed-thumb" src="{v['thumb']}" onerror="this.style.background='#1a1a1a'"/>
+                <div style="min-width:0">
                     <div class="feed-title">{v['title']}</div>
-                    <div class="feed-meta">{ago} &nbsp;·&nbsp; {geo}</div>
+                    <div class="feed-meta">👤 {v.get('author','')} &nbsp;·&nbsp; {ago}</div>
                 </div>
             </div>
+            </a>
             """, unsafe_allow_html=True)
 else:
     st.markdown("""
-    <div style="text-align:center; color:#2a2a2a; padding: 1.5rem 0; font-family: 'Space Mono', monospace; font-size:0.78rem; letter-spacing:2px;">
+    <div style="text-align:center;color:#222;padding:2rem 0;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:2px;">
         NO VIDEOS SUMMARIZED YET — BE THE FIRST
     </div>
     """, unsafe_allow_html=True)
 
-# ── Empty state ───────────────────────────────────────────────────────────────
-
 if not st.session_state.get("analysis") and not analyze_btn:
     st.markdown("""
-    <div style="text-align:center; color:#2a2a2a; padding: 2rem 0; font-family: 'Space Mono', monospace; font-size:0.78rem; letter-spacing:2px;">
+    <div style="text-align:center;color:#1e1e1e;padding:2rem 0;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:2px;">
         PASTE A YOUTUBE URL ABOVE AND HIT ANALYZE
     </div>
     """, unsafe_allow_html=True)
 
 # ── Footer ────────────────────────────────────────────────────────────────────
-
 st.markdown(f"""
 <div class="footer">
-    <a href="{BMAC_URL}" target="_blank" class="bmac-btn">
-        ☕ Buy me a coffee
-    </a>
+    <a href="{BMAC_URL}" target="_blank" class="bmac-btn">☕ Buy me a coffee</a>
     <div class="footer-note">Built with Streamlit + Claude AI · Free to use</div>
 </div>
 """, unsafe_allow_html=True)
