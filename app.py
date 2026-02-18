@@ -564,7 +564,6 @@ if not st.session_state.get("analysis") and not analyze_btn:
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="footer">
-    <a href="{BMAC_URL}" target="_blank" class="bmac-btn">☕ Buy me a coffee</a>
     <div class="footer-note">Built with Streamlit + Claude AI · Free to use</div>
 </div>
 """, unsafe_allow_html=True)
