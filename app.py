@@ -87,11 +87,9 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 
 .stTextInput > div > div > input { background: #141414 !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; color: #f0f0f0 !important; font-size: 1.08rem !important; padding: 0.65rem 1rem !important; }
 .stTextInput > div > div > input:focus { border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255,77,77,0.12) !important; }
-.stFormSubmitButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1.1rem !important; font-weight: 700 !important; letter-spacing: 2px !important; padding: 0.85rem 2.8rem !important; }
-/* ASK button: secondary gray, match input height */
-[data-testid="stForm"]:has([data-testid="stTextInput"]) .stFormSubmitButton > button { background: #1a1a1a !important; color: #aaa !important; border: 1px solid #2a2a2a !important; font-size: 0.85rem !important; font-weight: 400 !important; letter-spacing: 1px !important; padding: 0 1.2rem !important; height: 42px !important; min-height: 42px !important; }
-[data-testid="stForm"]:has([data-testid="stTextInput"]) .stFormSubmitButton { display: flex !important; align-items: flex-end !important; }
-[data-testid="stForm"]:has([data-testid="stTextInput"]) .stTextInput > div > div > input { height: 42px !important; min-height: 42px !important; box-sizing: border-box !important; }
+.stFormSubmitButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1.1rem !important; font-weight: 700 !important; letter-spacing: 2px !important; padding: 0.85rem 2.8rem !important; cursor: pointer !important; position: relative !important; z-index: 1 !important; }
+.stFormSubmitButton { position: relative !important; z-index: 1 !important; }
+.ask-form-wrap .stFormSubmitButton > button { background: #1a1a1a !important; color: #aaa !important; border: 1px solid #2a2a2a !important; font-size: 0.85rem !important; font-weight: 400 !important; letter-spacing: 1px !important; padding: 0.65rem 1.2rem !important; }
 .stButton > button:hover { opacity: 0.85 !important; }
 /* Hide the invisible feed trigger buttons */
 [data-testid="stButton"] button[title] { 
@@ -474,19 +472,21 @@ if st.session_state.get("analysis"):
 
     with col_left:
         st.markdown(f"""
-        <div style="border-radius:12px; overflow:hidden; margin-bottom:1.2rem;">
-            <iframe width="100%" height="315" src="https://www.youtube.com/embed/{video_id}"
-            frameborder="0" allowfullscreen style="display:block;"></iframe>
+        <div style="border-radius:12px; overflow:hidden; margin-bottom:1.2rem; position:relative; padding-bottom:56.25%; height:0;">
+            <iframe src="https://www.youtube.com/embed/{video_id}"
+            frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>
         </div>
         """, unsafe_allow_html=True)
 
         st.markdown('<div class="section-label">Ask a question about this video</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ask-form-wrap">', unsafe_allow_html=True)
         with st.form(key="ask_form", border=False):
             q_col, btn_col = st.columns([5, 1])
             with q_col:
                 question = st.text_input("Question", placeholder="What does it say about...?", label_visibility="collapsed", key="question_input")
             with btn_col:
                 ask_btn = st.form_submit_button("ASK")
+        st.markdown('</div>', unsafe_allow_html=True)
 
         if ask_btn and question:
             with st.spinner("Finding the answer..."):
