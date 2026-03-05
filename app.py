@@ -182,30 +182,48 @@ def is_channel_url(url: str) -> bool:
     return extract_channel_handle(url) is not None and extract_video_id(url) is None
 
 
-def get_channel_videos(channel_handle: str, max_results: int = 5) -> list[str]:
-    """Fetch latest video IDs from a channel via Supadata REST API."""
-    api_key = st.secrets.get("SUPADATA_API_KEY", "")
-    if not api_key:
-        raise RuntimeError("Missing SUPADATA_API_KEY in Streamlit secrets.")
+def get_channel_id_from_handle(handle: str) -> str:
+    """Resolve @handle or channel name to a UC... channel ID via YouTube page scrape."""
     try:
-        import urllib.parse
-        params = urllib.parse.urlencode({"id": channel_handle, "limit": max_results, "type": "video"})
-        req = urllib.request.Request(
-            f"https://api.supadata.ai/v1/youtube/channel/videos?{params}",
-            headers={"x-api-key": api_key},
-        )
-        with urllib.request.urlopen(req, timeout=15) as r:
-            data = json.loads(r.read())
-        ids = data.get("videoIds", [])
-        if not ids:
-            raise RuntimeError("No videos found for this channel.")
-        return ids[:max_results]
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"Channel unavailable (HTTP {e.code}): {e.reason}")
+        # Construct the URL to scrape
+        if handle.startswith("@"):
+            url = f"https://www.youtube.com/{handle}"
+        elif handle.startswith("UC"):
+            return handle  # already a channel ID
+        else:
+            url = f"https://www.youtube.com/c/{handle}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            html = r.read().decode("utf-8", errors="ignore")
+        m = re.search(r'"channelId":"(UC[\w-]+)"', html)
+        if m:
+            return m.group(1)
+        m = re.search(r'channel/(UC[\w-]+)', html)
+        if m:
+            return m.group(1)
+        raise RuntimeError("Could not resolve channel ID.")
     except RuntimeError:
         raise
     except Exception as e:
-        raise RuntimeError(f"Error fetching channel: {e}")
+        raise RuntimeError(f"Error resolving channel: {e}")
+
+
+def get_channel_videos(channel_handle: str, max_results: int = 5) -> list[str]:
+    """Fetch latest video IDs from a channel via YouTube RSS feed (no API key needed)."""
+    try:
+        channel_id = get_channel_id_from_handle(channel_handle)
+        rss_url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+        req = urllib.request.Request(rss_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            xml = r.read().decode("utf-8", errors="ignore")
+        ids = re.findall(r"<yt:videoId>([\w-]+)</yt:videoId>", xml)
+        if not ids:
+            raise RuntimeError("No videos found for this channel.")
+        return ids[:max_results]
+    except RuntimeError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"Error fetching channel videos: {e}")
 
 
 def get_video_info(video_id: str) -> dict:
