@@ -88,8 +88,7 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 .stTextInput > div > div > input { background: #141414 !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; color: #f0f0f0 !important; font-size: 1.08rem !important; padding: 0.65rem 1rem !important; }
 .stTextInput > div > div > input:focus { border-color: #ff4d4d !important; box-shadow: 0 0 0 2px rgba(255,77,77,0.12) !important; }
 .stFormSubmitButton > button { background: #ff4d4d !important; color: #fff !important; border: none !important; border-radius: 10px !important; font-family: 'Space Mono', monospace !important; font-size: 1.1rem !important; font-weight: 700 !important; letter-spacing: 2px !important; padding: 0.85rem 2.8rem !important; }
-.ask-form-wrap .stFormSubmitButton > button { background: #1a1a1a !important; color: #aaa !important; border: 1px solid #2a2a2a !important; border-radius: 10px !important; font-size: 0.85rem !important; font-weight: 400 !important; letter-spacing: 1px !important; padding: 0 1.2rem !important; height: 42px !important; min-height: 42px !important; line-height: 42px !important; }
-.ask-form-wrap .stTextInput > div > div > input { height: 42px !important; min-height: 42px !important; padding: 0 1rem !important; box-sizing: border-box !important; }
+[data-testid="stForm"]:has([data-testid="stTextInput"]) .stFormSubmitButton > button { background: #1a1a1a !important; color: #aaa !important; border: 1px solid #2a2a2a !important; font-size: 0.85rem !important; font-weight: 400 !important; letter-spacing: 1px !important; padding: 0.65rem 1.2rem !important; }
 .stButton > button:hover { opacity: 0.85 !important; }
 /* Hide the invisible feed trigger buttons */
 [data-testid="stButton"] button[title] { 
@@ -101,12 +100,6 @@ h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
 .bmac-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: #FFDD00; color: #000 !important; text-decoration: none !important; padding: 0.65rem 1.5rem; border-radius: 10px; font-weight: 600; font-size: 0.92rem; transition: opacity 0.2s; }
 .bmac-btn:hover { opacity: 0.85; }
 .footer-note { color: #333; font-size: 0.75rem; margin-top: 0.9rem; font-family: 'Space Mono', monospace; }
-
-/* Hide Streamlit header toolbar (GitHub fork/star/menu bar) */
-header[data-testid="stHeader"] { display: none !important; }
-#MainMenu { display: none !important; }
-[data-testid="stToolbar"] { display: none !important; }
-.stDeployButton { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -169,6 +162,47 @@ def persist_shared():
 def extract_video_id(url: str) -> str | None:
     m = re.search(r"(?:v=|youtu\.be/|embed/|shorts/)([A-Za-z0-9_-]{11})", url)
     return m.group(1) if m else None
+
+
+def extract_channel_handle(url: str) -> str | None:
+    """Extract channel handle or ID from a YouTube channel URL."""
+    # @handle format: youtube.com/@handle
+    m = re.search(r"youtube\.com/@([\w.-]+)", url)
+    if m: return f"@{m.group(1)}"
+    # /channel/UC... format
+    m = re.search(r"youtube\.com/channel/(UC[\w-]+)", url)
+    if m: return m.group(1)
+    # /c/name or /user/name
+    m = re.search(r"youtube\.com/(?:c|user)/([\w.-]+)", url)
+    if m: return m.group(1)
+    return None
+
+
+def is_channel_url(url: str) -> bool:
+    return extract_channel_handle(url) is not None and extract_video_id(url) is None
+
+
+def get_channel_videos(channel_handle: str, max_results: int = 5) -> list[str]:
+    """Fetch latest video IDs from a channel via Supadata."""
+    from supadata import Supadata, SupadataError
+    api_key = st.secrets.get("SUPADATA_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("Missing SUPADATA_API_KEY in Streamlit secrets.")
+    sd = Supadata(api_key=api_key)
+    try:
+        result = sd.youtube.channel_videos(
+            channel_id=channel_handle,
+            limit=max_results,
+        )
+        if not result:
+            raise RuntimeError("No videos found for this channel.")
+        ids = getattr(result, "video_ids", None) or getattr(result, "videos", None) or result
+        if isinstance(ids, list) and len(ids) > 0:
+            # items may be strings or objects with .id
+            return [v if isinstance(v, str) else getattr(v, "id", str(v)) for v in ids[:max_results]]
+        raise RuntimeError("No videos found for this channel.")
+    except SupadataError as e:
+        raise RuntimeError(f"Channel unavailable: {e}")
 
 
 def get_video_info(video_id: str) -> dict:
@@ -276,6 +310,27 @@ QUESTION: {question}"""}]
     return response.content[0].text
 
 
+def claude_summarize_channel(channel_name: str, video_summaries: list[dict]) -> str:
+    """Generate an overall channel summary from individual video analyses."""
+    videos_text = ""
+    for i, v in enumerate(video_summaries, 1):
+        title = v.get("info", {}).get("title", f"Video {i}")
+        summary = v.get("analysis", {}).get("summary", "")
+        bullets = v.get("analysis", {}).get("bullets", [])
+        bullets_text = " ".join(f"• {b}" for b in bullets[:3])
+        videos_text += f"\n{i}. {title}\nSummary: {summary}\nKey points: {bullets_text}\n"
+
+    response = get_claude_client().messages.create(
+        model="claude-opus-4-6", max_tokens=1000,
+        messages=[{"role": "user", "content": f"""Based on these summaries of the last {len(video_summaries)} videos from the YouTube channel "{channel_name}", write a concise channel overview.
+
+{videos_text}
+
+Write 3-5 sentences describing: what topics this channel covers, the general style/approach, and what viewers can expect. Be specific and insightful. Respond in English."""}]
+    )
+    return response.content[0].text
+
+
 def load_cached_analysis(video_id: str) -> dict | None:
     return storage_get(f"cache:{video_id}")
 
@@ -341,12 +396,12 @@ if qparam_vid and st.session_state.get("loaded_vid") != qparam_vid:
 # ── UI ────────────────────────────────────────────────────────────────────────
 
 st.markdown('<div class="main-title">YT <span class="accent">//</span> Summarizer</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Transcript · Summary · Q&A — for any YouTube video</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Transcript · Summary · Q&A — for any YouTube video or channel</div>', unsafe_allow_html=True)
 
 with st.form(key="analyze_form", border=False):
     url_input = st.text_input(
         label="YouTube URL",
-        placeholder="https://www.youtube.com/watch?v=...",
+        placeholder="Video URL or channel URL (youtube.com/@channel)...",
         label_visibility="collapsed",
         value=f"https://www.youtube.com/watch?v={qparam_vid}" if qparam_vid and st.session_state.get("from_cache") else "",
     )
@@ -356,9 +411,90 @@ with st.form(key="analyze_form", border=False):
 
 if analyze_btn and url_input:
     video_id = extract_video_id(url_input)
-    if not video_id:
-        st.error("Couldn't recognize YouTube URL. Try a different format.")
-    else:
+    channel_handle = extract_channel_handle(url_input)
+
+    # ── Channel flow ──────────────────────────────────────────────────────────
+    if is_channel_url(url_input):
+        st.session_state["channel_results"] = None
+        st.session_state["analysis"] = None
+        st.markdown("---")
+        prog = st.empty()
+
+        render_progress(prog, [
+            ("Fetching channel videos...", "active"),
+            ("Analyzing videos with Claude AI...", "pending"),
+            ("Generating channel overview...", "pending"),
+        ], 10)
+
+        try:
+            video_ids = get_channel_videos(channel_handle, max_results=5)
+        except RuntimeError as e:
+            prog.empty(); st.error(str(e)); st.stop()
+
+        video_results = []
+        for i, vid_id in enumerate(video_ids):
+            pct = 10 + int((i / len(video_ids)) * 70)
+            render_progress(prog, [
+                ("Fetching channel videos...", "done"),
+                (f"Analyzing video {i+1}/{len(video_ids)}...", "active"),
+                ("Generating channel overview...", "pending"),
+            ], pct)
+
+            # Use cache if available
+            cached = load_cached_analysis(vid_id)
+            if cached:
+                video_results.append(cached)
+                continue
+
+            try:
+                transcript_text, lang = get_transcript(vid_id)
+            except RuntimeError:
+                continue  # skip videos without transcripts
+
+            try:
+                analysis = claude_analyze(transcript_text, f"https://www.youtube.com/watch?v={vid_id}")
+            except RuntimeError:
+                continue
+
+            info = get_video_info(vid_id)
+            payload = {
+                "transcript": transcript_text, "lang": lang,
+                "analysis": analysis, "info": info,
+                "cached_at": datetime.now(timezone.utc).isoformat(),
+                "video_id": vid_id,
+            }
+            save_cached_analysis(vid_id, payload)
+            add_to_recent(vid_id, info, len(transcript_text.split()))
+            video_results.append(payload)
+
+        render_progress(prog, [
+            ("Fetching channel videos...", "done"),
+            (f"Analyzed {len(video_results)} videos...", "done"),
+            ("Generating channel overview...", "active"),
+        ], 85)
+
+        channel_name = video_results[0]["info"]["author"] if video_results else channel_handle
+        channel_overview = claude_summarize_channel(channel_name, video_results)
+
+        render_progress(prog, [
+            ("Fetching channel videos...", "done"),
+            (f"Analyzed {len(video_results)} videos...", "done"),
+            ("Generating channel overview...", "done"),
+        ], 100)
+
+        st.session_state["channel_results"] = {
+            "handle": channel_handle,
+            "name": channel_name,
+            "overview": channel_overview,
+            "videos": video_results,
+        }
+        time.sleep(0.4)
+        prog.empty()
+        st.rerun()
+
+    # ── Single video flow ─────────────────────────────────────────────────────
+    elif video_id:
+        st.session_state["channel_results"] = None
         # Check cache first
         cached = load_cached_analysis(video_id)
         if cached:
@@ -410,25 +546,76 @@ if analyze_btn and url_input:
 
             info = get_video_info(video_id)
             st.session_state["video_info"] = info
-
-            # Save to persistent cache
             save_cached_analysis(video_id, {
-                "transcript": transcript_text,
-                "lang": lang,
-                "analysis": analysis,
-                "info": info,
+                "transcript": transcript_text, "lang": lang,
+                "analysis": analysis, "info": info,
                 "cached_at": datetime.now(timezone.utc).isoformat(),
             })
-
-            # Update feed + stats
             add_to_recent(video_id, info, len(transcript_text.split()))
-
-            # Set query param for shareable URL
             st.query_params["v"] = video_id
-
             time.sleep(0.4)
             prog.empty()
             st.rerun()
+    else:
+        st.error("Couldn't recognize YouTube URL. Try a video or channel URL.")
+
+# ── Channel Results ───────────────────────────────────────────────────────────
+
+if st.session_state.get("channel_results"):
+    cr = st.session_state["channel_results"]
+    st.markdown("---")
+
+    # Channel header
+    st.markdown(f"""
+    <div style="margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:1px solid #1e1e1e;">
+        <div class="section-label">Channel Overview</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#f0f0f0;margin-bottom:0.5rem;">{cr['name']}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Overview card
+    st.markdown(f"""
+    <div class="card">
+        <div class="section-label">About this channel</div>
+        <div class="summary-text"><strong>{cr['overview']}</strong></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Individual videos
+    st.markdown('<div class="section-label" style="margin-top:0.5rem;">Last 5 videos</div>', unsafe_allow_html=True)
+    for v in cr["videos"]:
+        vid_id = v.get("video_id", "")
+        info = v.get("info", {})
+        analysis = v.get("analysis", {})
+        title = info.get("title", "Unknown")
+        author = info.get("author", "")
+        bullets = analysis.get("bullets", [])
+        summary = analysis.get("summary", "")
+        bullets_html = "".join(
+            f'<div class="bullet-item"><span class="bullet-dot">→</span><span>{b}</span></div>'
+            for b in bullets
+        )
+        with st.expander(f"▶  {title}"):
+            col_v, col_s = st.columns([1, 1], gap="large")
+            with col_v:
+                st.markdown(f"""
+                <div style="border-radius:10px;overflow:hidden;margin-bottom:1rem;">
+                    <iframe width="100%" height="200" src="https://www.youtube.com/embed/{vid_id}"
+                    frameborder="0" allowfullscreen style="display:block;"></iframe>
+                </div>
+                <div style="font-size:0.88rem;color:#555;font-family:Space Mono,monospace;">&#128100; {author}</div>
+                """, unsafe_allow_html=True)
+            with col_s:
+                st.markdown(f"""
+                <div class="card" style="margin-bottom:0.8rem;">
+                    <div class="section-label">Summary</div>
+                    <div class="summary-text"><strong>{summary}</strong></div>
+                </div>
+                <div class="card">
+                    <div class="section-label">Key Points</div>
+                    {bullets_html}
+                </div>
+                """, unsafe_allow_html=True)
 
 # ── Results ───────────────────────────────────────────────────────────────────
 
@@ -457,17 +644,8 @@ if st.session_state.get("analysis"):
         )
     with _s_col:
         st.components.v1.html(
-            '<button id="shareBtn" onclick="'
-            "navigator.clipboard.writeText('" + share_url + "');"
-            "var b=document.getElementById('shareBtn');"
-            "b.innerHTML='<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'14\\' height=\\'14\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#4caf50\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg>Copied';"
-            "b.style.borderColor='#2a4a2a';b.style.color='#4caf50';"
-            "setTimeout(function(){"
-            "b.innerHTML='<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'14\\' height=\\'14\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#aaa\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><circle cx=\\'18\\' cy=\\'5\\' r=\\'3\\'/><circle cx=\\'6\\' cy=\\'12\\' r=\\'3\\'/><circle cx=\\'18\\' cy=\\'19\\' r=\\'3\\'/><line x1=\\'8.59\\' y1=\\'13.51\\' x2=\\'15.42\\' y2=\\'17.49\\'/><line x1=\\'15.41\\' y1=\\'6.51\\' x2=\\'8.59\\' y2=\\'10.49\\'/></svg>Share Link';"
-            "b.style.borderColor='#2a2a2a';b.style.color='#aaa';"
-            "},2000);"
-            '" title="Copy Share Link" '
-            'style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:#aaa;font-family:monospace;font-size:12px;white-space:nowrap;transition:all 0.2s;">'
+            '<button onclick="navigator.clipboard.writeText(\'' + share_url + '\')" title="Copy Share Link" '
+            'style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:#aaa;font-family:monospace;font-size:12px;white-space:nowrap;">'
             '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
             '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>'
             '<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>'
@@ -478,21 +656,19 @@ if st.session_state.get("analysis"):
 
     with col_left:
         st.markdown(f"""
-        <div style="border-radius:12px; overflow:hidden; margin-bottom:1.2rem; position:relative; padding-bottom:56.25%; height:0;">
-            <iframe src="https://www.youtube.com/embed/{video_id}"
-            frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>
+        <div style="border-radius:12px; overflow:hidden; margin-bottom:1.2rem;">
+            <iframe width="100%" height="315" src="https://www.youtube.com/embed/{video_id}"
+            frameborder="0" allowfullscreen style="display:block;"></iframe>
         </div>
         """, unsafe_allow_html=True)
 
         st.markdown('<div class="section-label">Ask a question about this video</div>', unsafe_allow_html=True)
-        st.markdown('<div class="ask-form-wrap">', unsafe_allow_html=True)
         with st.form(key="ask_form", border=False):
             q_col, btn_col = st.columns([5, 1])
             with q_col:
                 question = st.text_input("Question", placeholder="What does it say about...?", label_visibility="collapsed", key="question_input")
             with btn_col:
                 ask_btn = st.form_submit_button("ASK")
-        st.markdown('</div>', unsafe_allow_html=True)
 
         if ask_btn and question:
             with st.spinner("Finding the answer..."):
@@ -563,13 +739,14 @@ else:
 if not st.session_state.get("analysis") and not analyze_btn:
     st.markdown("""
     <div style="text-align:center;color:#1e1e1e;padding:2rem 0;font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:2px;">
-        PASTE A YOUTUBE URL ABOVE AND HIT ANALYZE
+        PASTE A VIDEO OR CHANNEL URL ABOVE AND HIT ANALYZE
     </div>
     """, unsafe_allow_html=True)
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="footer">
+    <a href="{BMAC_URL}" target="_blank" class="bmac-btn">☕ Buy me a coffee</a>
     <div class="footer-note">Built with Streamlit + Claude AI · Free to use</div>
 </div>
 """, unsafe_allow_html=True)
