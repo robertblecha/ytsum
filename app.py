@@ -183,26 +183,29 @@ def is_channel_url(url: str) -> bool:
 
 
 def get_channel_videos(channel_handle: str, max_results: int = 5) -> list[str]:
-    """Fetch latest video IDs from a channel via Supadata."""
-    from supadata import Supadata, SupadataError
+    """Fetch latest video IDs from a channel via Supadata REST API."""
     api_key = st.secrets.get("SUPADATA_API_KEY", "")
     if not api_key:
         raise RuntimeError("Missing SUPADATA_API_KEY in Streamlit secrets.")
-    sd = Supadata(api_key=api_key)
     try:
-        result = sd.youtube.channel_videos(
-            channel_id=channel_handle,
-            limit=max_results,
+        import urllib.parse
+        params = urllib.parse.urlencode({"id": channel_handle, "limit": max_results, "type": "video"})
+        req = urllib.request.Request(
+            f"https://api.supadata.ai/v1/youtube/channel/videos?{params}",
+            headers={"x-api-key": api_key},
         )
-        if not result:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read())
+        ids = data.get("videoIds", [])
+        if not ids:
             raise RuntimeError("No videos found for this channel.")
-        ids = getattr(result, "video_ids", None) or getattr(result, "videos", None) or result
-        if isinstance(ids, list) and len(ids) > 0:
-            # items may be strings or objects with .id
-            return [v if isinstance(v, str) else getattr(v, "id", str(v)) for v in ids[:max_results]]
-        raise RuntimeError("No videos found for this channel.")
-    except SupadataError as e:
-        raise RuntimeError(f"Channel unavailable: {e}")
+        return ids[:max_results]
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Channel unavailable (HTTP {e.code}): {e.reason}")
+    except RuntimeError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"Error fetching channel: {e}")
 
 
 def get_video_info(video_id: str) -> dict:
